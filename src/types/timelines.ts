@@ -1,9 +1,9 @@
-import { Timeline } from './timeline';
+import type { Timeline } from "./timeline";
 
 export type Timelines = {
-    [key: string]: Timeline
+    [key: string]: Timeline;
 };
 
 export type PreloadFileDict = {
-    [key: string]: string
+    [key: string]: string;
 };

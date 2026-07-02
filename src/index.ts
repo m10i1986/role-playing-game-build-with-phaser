@@ -1,18 +1,18 @@
-import './style.css'
-import * as Phaser from 'phaser';
-import { scenes } from './scene/index';
+import "./style.css";
+import * as Phaser from "phaser";
+import { scenes } from "./scene/index";
 
 const config: Phaser.Types.Core.GameConfig = {
-    type: Phaser.AUTO,  // webGLを使うかcanvasを使うかをphaserが自動で判断してくれる
+    type: Phaser.AUTO, // webGLを使うかcanvasを使うかをphaserが自動で判断してくれる
     width: 1024,
     height: 700,
-    parent: 'game-app',  // #game-app内にcanvasを生成
+    parent: "game-app", // #game-app内にcanvasを生成
     scene: scenes,
     physics: {
-        default: 'arcade',
+        default: "arcade",
         arcade: {
-            debug: false
-        }
+            debug: false,
+        },
     },
 };
 

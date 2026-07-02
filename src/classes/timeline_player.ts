@@ -1,5 +1,5 @@
-import { Choice, EventTypeEnum, MultiChoice, Timeline } from '../types/timeline';
-import { MessageDialog } from './message_dialog';
+import { type Choice, EventTypeEnum, type MultiChoice, type Timeline } from "../types/timeline";
+import type { MessageDialog } from "./message_dialog";
 
 export class TimelinePlayer {
     private background_layer: Phaser.GameObjects.Container;
@@ -14,9 +14,13 @@ export class TimelinePlayer {
     private weblink_box: Phaser.GameObjects.Rectangle | undefined;
     private weblink_text: Phaser.GameObjects.Text | undefined;
 
-    private typing_timer: Phaser.Time.TimerEvent | undefined;  // タイマーを保存するプロパティ
+    private typing_timer: Phaser.Time.TimerEvent | undefined; // タイマーを保存するプロパティ
 
-    constructor(private scene: Phaser.Scene, private message_dialog: MessageDialog, private text_style: Phaser.Types.GameObjects.Text.TextStyle = {}) {
+    constructor(
+        private scene: Phaser.Scene,
+        private message_dialog: MessageDialog,
+        private text_style: Phaser.Types.GameObjects.Text.TextStyle = {},
+    ) {
         // 背景レイヤー・前景レイヤー・UIレイヤーをコンテナを使って表現
         this.background_layer = this.scene.add.container(0, 0); // 背景用のレイヤー
         this.foreground_layer = this.scene.add.container(0, 0); // 前景用のレイヤー
@@ -38,11 +42,11 @@ export class TimelinePlayer {
         const { width, height } = this.scene.game.canvas;
         this.hit_area = new Phaser.GameObjects.Zone(this.scene, width / 2, height / 2, width, height);
         this.hit_area.setInteractive({
-            useHandCursor: true
+            useHandCursor: true,
         });
 
         // hit_areaをクリックしたらnext()を実行
-        this.hit_area.on('pointerdown', () => {
+        this.hit_area.on("pointerdown", () => {
             this.next();
         });
 
@@ -71,9 +75,9 @@ export class TimelinePlayer {
         const background_image = new Phaser.GameObjects.Image(this.scene, x, y, texture);
 
         switch (effect) {
-            case 'fadein':
+            case "fadein":
                 // フェードインエフェクトの場合
-                background_image.setAlpha(0);  // 初期透明度を0に設定
+                background_image.setAlpha(0); // 初期透明度を0に設定
 
                 // 背景レイヤーに画像オブジェクトを配置
                 this.background_layer.add(background_image);
@@ -81,15 +85,15 @@ export class TimelinePlayer {
                 // フェードインエフェクトを追加
                 this.scene.tweens.add({
                     targets: background_image,
-                    alpha: 1,  // 最終透明度を1に
-                    duration: 1000,  // 1000msでフェードイン
-                    ease: 'Linear'  // 線形補間
+                    alpha: 1, // 最終透明度を1に
+                    duration: 1000, // 1000msでフェードイン
+                    ease: "Linear", // 線形補間
                 });
                 break;
 
-            case 'fadeout':
+            case "fadeout":
                 // フェードインエフェクトの場合
-                background_image.setAlpha(1);  // 初期透明度を1に設定
+                background_image.setAlpha(1); // 初期透明度を1に設定
 
                 // 背景レイヤーに画像オブジェクトを配置
                 this.background_layer.add(background_image);
@@ -97,9 +101,9 @@ export class TimelinePlayer {
                 // フェードアウトエフェクトを追加
                 this.scene.tweens.add({
                     targets: background_image,
-                    alpha: 0,  // 最終透明度を0に
-                    duration: 1000,  // 1000msでフェードアウト
-                    ease: 'Linear'  // 線形補間
+                    alpha: 0, // 最終透明度を0に
+                    duration: 1000, // 1000msでフェードアウト
+                    ease: "Linear", // 線形補間
                 });
                 break;
 
@@ -152,7 +156,7 @@ export class TimelinePlayer {
         if (choices.length === 0) {
             return;
         }
-        this.hit_area.disableInteractive();  // hitAreaのクリックを無効化
+        this.hit_area.disableInteractive(); // hitAreaのクリックを無効化
 
         // ボタンを中央に配置するようにボタングループのY原点を計算
         const button_height = 40,
@@ -162,24 +166,31 @@ export class TimelinePlayer {
         const button_group_origin_y = height / 2 - button_group_height / 2;
 
         choices.forEach((choice, index) => {
-            const y = button_group_origin_y + button_height * (index + 0.5) + button_margin * (index);
+            const y = button_group_origin_y + button_height * (index + 0.5) + button_margin * index;
 
             // Rectangleでボタンを作成
-            const button = new Phaser.GameObjects.Rectangle(this.scene, width / 2, y, width - button_margin * 2, button_height, 0x000000).setStrokeStyle(1, 0xffffff);
+            const button = new Phaser.GameObjects.Rectangle(
+                this.scene,
+                width / 2,
+                y,
+                width - button_margin * 2,
+                button_height,
+                0x000000,
+            ).setStrokeStyle(1, 0xffffff);
             button.setInteractive({
-                useHandCursor: true
+                useHandCursor: true,
             });
 
             // マウスオーバーで色が変わるように設定
-            button.on('pointerover', () => {
+            button.on("pointerover", () => {
                 button.setFillStyle(0x333333);
             });
-            button.on('pointerout', () => {
+            button.on("pointerout", () => {
                 button.setFillStyle(0x000000);
             });
 
             // ボタンクリックでシーンをリスタートし、指定のタイムラインを実行する
-            button.on('pointerdown', () => {
+            button.on("pointerdown", () => {
                 // restart()の引数がシーンのinit()の引数に渡される
                 this.scene.scene.restart({ id: choice.key });
             });
@@ -188,7 +199,13 @@ export class TimelinePlayer {
             this.ui_layer.add(button);
 
             // ボタンテキストを作成
-            const button_text = new Phaser.GameObjects.Text(this.scene, width / 2, y, choice.text, this.text_style).setOrigin(0.5);
+            const button_text = new Phaser.GameObjects.Text(
+                this.scene,
+                width / 2,
+                y,
+                choice.text,
+                this.text_style,
+            ).setOrigin(0.5);
 
             // ボタンテキストをUIレイヤーに追加
             this.ui_layer.add(button_text);
@@ -196,7 +213,14 @@ export class TimelinePlayer {
     }
 
     // 複数選択肢ボタンをセット
-    private setMultiChoiceButtons(multiChoices: MultiChoice[], correctKey: string, incorrectKey: string, shuffle: boolean = false, minSelect: number = 0, maxSelect?: number) {
+    private setMultiChoiceButtons(
+        multiChoices: MultiChoice[],
+        correctKey: string,
+        incorrectKey: string,
+        shuffle: boolean = false,
+        minSelect: number = 0,
+        maxSelect?: number,
+    ) {
         if (multiChoices.length === 0) {
             return;
         }
@@ -228,19 +252,28 @@ export class TimelinePlayer {
             const choice = multiChoices[origIndex];
             const y = button_group_origin_y + button_height * (displayIndex + 0.5) + button_margin * displayIndex;
 
-            const button = new Phaser.GameObjects.Rectangle(this.scene, width / 2, y, width - button_margin * 2, button_height, 0x000000).setStrokeStyle(1, 0xffffff);
+            const button = new Phaser.GameObjects.Rectangle(
+                this.scene,
+                width / 2,
+                y,
+                width - button_margin * 2,
+                button_height,
+                0x000000,
+            ).setStrokeStyle(1, 0xffffff);
             button.setInteractive({ useHandCursor: true });
 
             // 初期色
             button.setFillStyle(0x000000);
 
-            button.on('pointerover', () => { button.setFillStyle(0x222222); });
-            button.on('pointerout', () => {
+            button.on("pointerover", () => {
+                button.setFillStyle(0x222222);
+            });
+            button.on("pointerout", () => {
                 // 選択済みなら強い色、未選択なら黒
                 button.setFillStyle(selected.has(origIndex) ? 0x663333 : 0x000000);
             });
 
-            button.on('pointerdown', () => {
+            button.on("pointerdown", () => {
                 if (selected.has(origIndex)) {
                     // 解除
                     selected.delete(origIndex);
@@ -258,21 +291,44 @@ export class TimelinePlayer {
 
             this.ui_layer.add(button);
 
-            const button_text = new Phaser.GameObjects.Text(this.scene, width / 2, y, choice.text, this.text_style).setOrigin(0.5);
+            const button_text = new Phaser.GameObjects.Text(
+                this.scene,
+                width / 2,
+                y,
+                choice.text,
+                this.text_style,
+            ).setOrigin(0.5);
             this.ui_layer.add(button_text);
         });
 
         // 下部に「選択完了」ボタンを追加
         const finishY = Math.max(60, height - dialogReserve - 40);
-        const finishButton = new Phaser.GameObjects.Rectangle(this.scene, width / 2, finishY, 240, 40, 0x000000).setStrokeStyle(1, 0xffffff);
+        const finishButton = new Phaser.GameObjects.Rectangle(
+            this.scene,
+            width / 2,
+            finishY,
+            240,
+            40,
+            0x000000,
+        ).setStrokeStyle(1, 0xffffff);
         finishButton.setInteractive({ useHandCursor: true });
 
-        finishButton.on('pointerover', () => { finishButton.setFillStyle(0x222222); });
-        finishButton.on('pointerout', () => { finishButton.setFillStyle(0x000000); });
+        finishButton.on("pointerover", () => {
+            finishButton.setFillStyle(0x222222);
+        });
+        finishButton.on("pointerout", () => {
+            finishButton.setFillStyle(0x000000);
+        });
 
-        const finishText = new Phaser.GameObjects.Text(this.scene, width / 2, finishY, '選択完了(採点する)', this.text_style).setOrigin(0.5);
+        const finishText = new Phaser.GameObjects.Text(
+            this.scene,
+            width / 2,
+            finishY,
+            "選択完了(採点する)",
+            this.text_style,
+        ).setOrigin(0.5);
 
-        finishButton.on('pointerdown', () => {
+        finishButton.on("pointerdown", () => {
             // 最低選択数チェック
             if (selected.size < minSelect) {
                 // 必要ならフィードバックを出す（現状は何もしない）
@@ -281,13 +337,18 @@ export class TimelinePlayer {
 
             // 正解インデックス集合を作る（元のインデックス基準）
             const correctIndices = new Set<number>();
-            multiChoices.forEach((c, i) => { if (c.correct) correctIndices.add(i); });
+            multiChoices.forEach((c, i) => {
+                if (c.correct) correctIndices.add(i);
+            });
 
             // 判定: 選択集合が正解集合と一致しているか
             let isCorrect = selected.size === correctIndices.size;
             if (isCorrect) {
                 for (const idx of correctIndices) {
-                    if (!selected.has(idx)) { isCorrect = false; break; }
+                    if (!selected.has(idx)) {
+                        isCorrect = false;
+                        break;
+                    }
                 }
             }
 
@@ -306,7 +367,7 @@ export class TimelinePlayer {
         this.ui_layer.add(finishText);
     }
 
-    private showWebLink(url: string, text: string | undefined, target: string | undefined = '_blank') {
+    private showWebLink(url: string, text: string | undefined, target: string | undefined = "_blank") {
         // 既存のWebリンクボックスがあれば削除
         this.hideWebLink();
 
@@ -317,17 +378,16 @@ export class TimelinePlayer {
         // パディング設定
         const padding_horizontal = 30;
         const padding_vertical = 20;
-        const max_width = width - 100;  // 画面幅から余裕を取る
+        const max_width = width - 100; // 画面幅から余裕を取る
 
         // リンクテキストを作成（サイズ計測用）
         const display_text = text || url;
-        const temp_text = new Phaser.GameObjects.Text(
-            this.scene,
-            0,
-            0,
-            display_text,
-            { fontSize: '16px', color: '#00ccff', wordWrap: { width: max_width }, ...this.text_style }
-        );
+        const temp_text = new Phaser.GameObjects.Text(this.scene, 0, 0, display_text, {
+            fontSize: "16px",
+            color: "#00ccff",
+            wordWrap: { width: max_width },
+            ...this.text_style,
+        });
 
         // テキストサイズを取得
         const text_bounds = temp_text.getBounds();
@@ -350,21 +410,21 @@ export class TimelinePlayer {
             box_y,
             box_width,
             box_height,
-            0x1a1a1a
+            0x1a1a1a,
         ).setStrokeStyle(2, 0x00ccff);
 
         this.weblink_box.setInteractive({ useHandCursor: true });
 
         // ホバーエフェクト
-        this.weblink_box.on('pointerover', () => {
+        this.weblink_box.on("pointerover", () => {
             this.weblink_box?.setFillStyle(0x333333);
         });
-        this.weblink_box.on('pointerout', () => {
+        this.weblink_box.on("pointerout", () => {
             this.weblink_box?.setFillStyle(0x1a1a1a);
         });
 
         // クリック時にリンクを開く
-        this.weblink_box.on('pointerdown', () => {
+        this.weblink_box.on("pointerdown", () => {
             window.open(url, target);
         });
 
@@ -373,13 +433,12 @@ export class TimelinePlayer {
         // リンクテキストを配置（テンポラリテキストは削除）
         temp_text.destroy();
 
-        this.weblink_text = new Phaser.GameObjects.Text(
-            this.scene,
-            box_x,
-            box_y,
-            display_text,
-            { fontSize: '16px', color: '#00ccff', wordWrap: { width: box_width - padding_horizontal * 2 }, ...this.text_style }
-        ).setOrigin(0.5);
+        this.weblink_text = new Phaser.GameObjects.Text(this.scene, box_x, box_y, display_text, {
+            fontSize: "16px",
+            color: "#00ccff",
+            wordWrap: { width: box_width - padding_horizontal * 2 },
+            ...this.text_style,
+        }).setOrigin(0.5);
 
         this.ui_layer.add(this.weblink_text);
     }
@@ -399,7 +458,7 @@ export class TimelinePlayer {
     // Soundの再生
     private playSound(key: string, loop: boolean) {
         const sound = this.scene.sound.get(key) as Phaser.Sound.BaseSound;
-        if (sound && sound.isPlaying) {
+        if (sound?.isPlaying) {
             return;
         }
         this.scene.sound.play(key, { loop: loop });
@@ -408,7 +467,7 @@ export class TimelinePlayer {
     // Soundの再生を停止
     private clearSound(key: string) {
         const sound = this.scene.sound.get(key) as Phaser.Sound.BaseSound;
-        if (sound && sound.isPlaying) {
+        if (sound?.isPlaying) {
             sound.destroy();
         }
     }
@@ -439,15 +498,15 @@ export class TimelinePlayer {
         let color: string;
         let alpha: number;
         switch (timeline_event.event) {
-            case EventTypeEnum.SetDialog:  // ダイアログイベント
+            case EventTypeEnum.SetDialog: // ダイアログイベント
                 // initialize actor box fill color
-                color = "#000000"
-                alpha = 1.0
-                if (timeline_event.actorFillColor !== undefined && timeline_event.actorFillColor.startsWith('#')) {
+                color = "#000000";
+                alpha = 1.0;
+                if (timeline_event.actorFillColor?.startsWith("#")) {
                     // actorFillColorが設定されていたら名前背景の色を変更
                     color = timeline_event.actorFillColor;
                 }
-                if (timeline_event.actorFillAlpha !== undefined && typeof timeline_event.actorFillAlpha === 'number') {
+                if (timeline_event.actorFillAlpha !== undefined && typeof timeline_event.actorFillAlpha === "number") {
                     // actorFillAlphaが設定されていたら名前背景の透明度を変更
                     alpha = timeline_event.actorFillAlpha;
                 }
@@ -462,13 +521,13 @@ export class TimelinePlayer {
                 }
 
                 // initialize text box fill color
-                color = "#000000"
-                alpha = 1.0
-                if (timeline_event.textFillColor !== undefined && timeline_event.textFillColor.startsWith('#')) {
+                color = "#000000";
+                alpha = 1.0;
+                if (timeline_event.textFillColor?.startsWith("#")) {
                     // textFillColorが設定されていたら名前背景の色を変更
                     color = timeline_event.textFillColor;
                 }
-                if (timeline_event.textFillAlpha !== undefined && typeof timeline_event.textFillAlpha === 'number') {
+                if (timeline_event.textFillAlpha !== undefined && typeof timeline_event.textFillAlpha === "number") {
                     // textFillAlphaが設定されていたら名前背景の透明度を変更
                     alpha = timeline_event.textFillAlpha;
                 }
@@ -478,74 +537,81 @@ export class TimelinePlayer {
                 this.typing_timer = this.message_dialog.setTextWithTypingEffect(timeline_event.text, 50);
                 break;
 
-            case EventTypeEnum.ClearDialog:  // ダイアログ削除イベント
+            case EventTypeEnum.ClearDialog: // ダイアログ削除イベント
                 this.message_dialog.clearActorNameText();
                 this.message_dialog.clearText();
                 break;
 
-            case EventTypeEnum.SetBackground:  // 背景設定イベント
+            case EventTypeEnum.SetBackground: // 背景設定イベント
                 this.setBackground(timeline_event.key, timeline_event.x, timeline_event.y, timeline_event.effect);
-                this.next();  // すぐに次のタイムラインを実行する
+                this.next(); // すぐに次のタイムラインを実行する
                 break;
 
-            case EventTypeEnum.ClearBackground:  // 背景クリアイベント
+            case EventTypeEnum.ClearBackground: // 背景クリアイベント
                 this.clearBackground();
-                this.next();  // すぐに次のタイムラインを実行する
+                this.next(); // すぐに次のタイムラインを実行する
                 break;
 
-            case EventTypeEnum.SetFrame:  // 画面枠設定イベント
+            case EventTypeEnum.SetFrame: // 画面枠設定イベント
                 this.setFrame(timeline_event.key);
-                this.next();  // すぐに次のタイムラインを実行する
+                this.next(); // すぐに次のタイムラインを実行する
                 break;
 
-            case EventTypeEnum.AddForeground:  // 前景追加イベント
+            case EventTypeEnum.AddForeground: // 前景追加イベント
                 this.addForeground(timeline_event.key, timeline_event.x, timeline_event.y);
-                this.next();  // すぐに次のタイムラインを実行する
+                this.next(); // すぐに次のタイムラインを実行する
                 break;
 
-            case EventTypeEnum.ClearForeground:  // 前景クリアイベント
+            case EventTypeEnum.ClearForeground: // 前景クリアイベント
                 this.clearForeground();
-                this.next();  // すぐに次のタイムラインを実行する
+                this.next(); // すぐに次のタイムラインを実行する
                 break;
 
-            case EventTypeEnum.TimelineTransition:  // タイムライン遷移イベント
+            case EventTypeEnum.TimelineTransition: // タイムライン遷移イベント
                 // シーンをリスタートし、指定のタイムラインを実行する
                 // restart()の引数がシーンのinit()の引数に渡される
                 this.scene.scene.restart({ id: timeline_event.key });
                 break;
 
-            case EventTypeEnum.SceneTransition:  // シーン遷移イベント
+            case EventTypeEnum.SceneTransition: // シーン遷移イベント
                 // 指定のシーンに遷移する
                 // start()の第2引数がシーンのinit()の引数に渡される
                 this.scene.scene.start(timeline_event.key, timeline_event.data);
                 break;
 
-            case EventTypeEnum.Choice:  // 選択肢イベント
+            case EventTypeEnum.Choice: // 選択肢イベント
                 this.setChoiceButtons(timeline_event.choices);
                 break;
 
-            case EventTypeEnum.MultiChoice:  // 選択肢イベント
-                this.setMultiChoiceButtons(timeline_event.choices, timeline_event.correctKey, timeline_event.incorrectKey, timeline_event.shuffle, timeline_event.minSelect, timeline_event.maxSelect);
+            case EventTypeEnum.MultiChoice: // 選択肢イベント
+                this.setMultiChoiceButtons(
+                    timeline_event.choices,
+                    timeline_event.correctKey,
+                    timeline_event.incorrectKey,
+                    timeline_event.shuffle,
+                    timeline_event.minSelect,
+                    timeline_event.maxSelect,
+                );
                 break;
 
-            case EventTypeEnum.ShowWebLink:  // Webリンク表示イベント
+            case EventTypeEnum.ShowWebLink: // Webリンク表示イベント
                 this.showWebLink(timeline_event.url, timeline_event.text, timeline_event.target);
-                this.next();  // すぐに次のタイムラインを実行する
+                this.next(); // すぐに次のタイムラインを実行する
                 break;
 
-            case EventTypeEnum.HideWebLink:  // Webリンククリアイベント
+            case EventTypeEnum.HideWebLink: // Webリンククリアイベント
                 this.hideWebLink();
-                this.next();  // すぐに次のタイムラインを実行する
+                this.next(); // すぐに次のタイムラインを実行する
                 break;
 
-            case EventTypeEnum.PlaySound:  // Sound再生イベント
+            case EventTypeEnum.PlaySound: // Sound再生イベント
                 this.playSound(timeline_event.key, timeline_event.loop ?? false);
-                this.next();  // すぐに次のタイムラインを実行する
+                this.next(); // すぐに次のタイムラインを実行する
                 break;
 
-            case EventTypeEnum.ClearSound:  // Soundクリアイベント
+            case EventTypeEnum.ClearSound: // Soundクリアイベント
                 this.clearSound(timeline_event.key);
-                this.next();  // すぐに次のタイムラインを実行する
+                this.next(); // すぐに次のタイムラインを実行する
                 break;
 
             default:
