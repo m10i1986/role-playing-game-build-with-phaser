@@ -15,7 +15,25 @@ export enum EventTypeEnum {
     HideWebLink = "hide_weblink",
     PlaySound = "play_sound",
     ClearSound = "clear_sound",
+    SetVariable = "set_variable",
+    ClearVariable = "clear_variable",
+    GetVariable = "get_variable",
+    InputNumber = "input_number",
 }
+
+// 変数として扱える値の型
+export type VariableValue = string | number | boolean;
+
+// 変数条件の比較演算子
+export type ConditionOperator = "eq" | "neq" | "gt" | "gte" | "lt" | "lte" | "exists" | "notExists";
+
+// 変数条件(Choice/MultiChoiceの表示条件・スキップ判定に使用)
+export type VariableCondition = {
+    event: EventTypeEnum.GetVariable;
+    key: string;
+    operator: ConditionOperator;
+    value?: VariableValue; // exists/notExistsでは不要
+};
 
 // ダイアログ表示イベント
 type SetDialogEvent = {
@@ -89,6 +107,7 @@ type ChoiceEvent = {
 export type Choice = {
     text: string;
     key: string; // 選択肢選択時の遷移先キー
+    condition?: VariableCondition; // 表示条件(未設定時は常に表示)
 };
 
 // 複数選択肢イベント
@@ -106,6 +125,7 @@ export type MultiChoice = {
     correct: boolean; // 正解選択肢かどうか
     contraindication?: boolean; // 禁忌選択肢かどうか(選択すると強制的に不正解扱いになる)
     point?: number; // 選択肢のポイント(スコア計算用)
+    condition?: VariableCondition; // 表示条件(未設定時は常に表示)
 };
 
 // ウェブリンク表示イベント
@@ -131,6 +151,29 @@ type ClearSoundEvent = {
     key: string;
 };
 
+// 変数設定イベント
+type SetVariableEvent = {
+    event: EventTypeEnum.SetVariable;
+    key: string;
+    value: VariableValue;
+};
+
+// 変数クリアイベント
+type ClearVariableEvent = {
+    event: EventTypeEnum.ClearVariable;
+    key: string;
+};
+
+// 数値入力イベント
+type InputNumberEvent = {
+    event: EventTypeEnum.InputNumber;
+    key: string; // 入力値の保存先変数名
+    min?: number;
+    max?: number;
+    defaultValue?: number; // 初期値(省略時はmin ?? 0)
+    step?: number; // +/-ボタン1回あたりの増減量(デフォルト1)
+};
+
 // Timelineはイベントの配列
 export type Timeline = (
     | SetDialogEvent
@@ -148,4 +191,7 @@ export type Timeline = (
     | HideWebLinkEvent
     | PlaySoundEvent
     | ClearSoundEvent
+    | SetVariableEvent
+    | ClearVariableEvent
+    | InputNumberEvent
 )[];

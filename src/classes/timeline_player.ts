@@ -1,5 +1,6 @@
 import { type Choice, EventTypeEnum, type MultiChoice, type Timeline } from "../types/timeline";
 import type { MessageDialog } from "./message_dialog";
+import { clearVariable, evaluateCondition, interpolateVariables, setVariable } from "./variable_store";
 
 export class TimelinePlayer {
     private background_layer: Phaser.GameObjects.Container;
@@ -153,7 +154,10 @@ export class TimelinePlayer {
 
     // 選択肢ボタンをセット
     private setChoiceButtons(choices: Choice[]) {
-        if (choices.length === 0) {
+        // 表示条件を満たす選択肢のみに絞り込む
+        const visible_choices = choices.filter((choice) => !choice.condition || evaluateCondition(choice.condition));
+
+        if (visible_choices.length === 0) {
             return;
         }
         this.hit_area.disableInteractive(); // hitAreaのクリックを無効化
@@ -162,10 +166,11 @@ export class TimelinePlayer {
         const button_height = 40,
             button_margin = 40;
         const { width, height } = this.scene.game.canvas;
-        const button_group_height = button_height * choices.length + button_margin * (choices.length - 1);
+        const button_group_height =
+            button_height * visible_choices.length + button_margin * (visible_choices.length - 1);
         const button_group_origin_y = height / 2 - button_group_height / 2;
 
-        choices.forEach((choice, index) => {
+        visible_choices.forEach((choice, index) => {
             const y = button_group_origin_y + button_height * (index + 0.5) + button_margin * index;
 
             // Rectangleでボタンを作成
@@ -221,7 +226,12 @@ export class TimelinePlayer {
         minSelect: number = 0,
         maxSelect?: number,
     ) {
-        if (multiChoices.length === 0) {
+        // 表示条件を満たす選択肢のみに絞り込む
+        const visible_choices = multiChoices.filter(
+            (choice) => !choice.condition || evaluateCondition(choice.condition),
+        );
+
+        if (visible_choices.length === 0) {
             return;
         }
         this.hit_area.disableInteractive();
@@ -229,7 +239,8 @@ export class TimelinePlayer {
         const button_height = 80;
         const button_margin = 10;
         const { width, height } = this.scene.game.canvas;
-        const button_group_height = button_height * multiChoices.length + button_margin * (multiChoices.length - 1);
+        const button_group_height =
+            button_height * visible_choices.length + button_margin * (visible_choices.length - 1);
         // ダイアログ領域分を下部に確保して、ボタン群を上にシフト
         const dialogReserve = 180; // 必要に応じて調整（ダイアログ高さに合わせる）
         const button_group_origin_y = Math.max(20, height / 2 - button_group_height / 2 - dialogReserve);
@@ -237,7 +248,7 @@ export class TimelinePlayer {
         const selected = new Set<number>();
 
         // 表示順序を作成（shuffle=true の場合は Fisher-Yates で並び替え）
-        const order = multiChoices.map((_, i) => i);
+        const order = visible_choices.map((_, i) => i);
         if (shuffle) {
             for (let i = order.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
@@ -247,9 +258,9 @@ export class TimelinePlayer {
             }
         }
 
-        // order に従って表示（order 要素は元の multiChoices のインデックス）
+        // order に従って表示（order 要素は visible_choices のインデックス）
         order.forEach((origIndex, displayIndex) => {
-            const choice = multiChoices[origIndex];
+            const choice = visible_choices[origIndex];
             const y = button_group_origin_y + button_height * (displayIndex + 0.5) + button_margin * displayIndex;
 
             const button = new Phaser.GameObjects.Rectangle(
@@ -335,9 +346,9 @@ export class TimelinePlayer {
                 return;
             }
 
-            // 正解インデックス集合を作る（元のインデックス基準）
+            // 正解インデックス集合を作る（visible_choices のインデックス基準）
             const correctIndices = new Set<number>();
-            multiChoices.forEach((c, i) => {
+            visible_choices.forEach((c, i) => {
                 if (c.correct) correctIndices.add(i);
             });
 
@@ -365,6 +376,207 @@ export class TimelinePlayer {
 
         this.ui_layer.add(finishButton);
         this.ui_layer.add(finishText);
+    }
+
+    // 数値入力UIをセット
+    private setNumberInput(
+        key: string,
+        min: number | undefined,
+        max: number | undefined,
+        defaultValue: number | undefined,
+        step: number,
+    ) {
+        this.hit_area.disableInteractive(); // hitAreaのクリックを無効化
+
+        const { width, height } = this.scene.game.canvas;
+
+        let value = defaultValue ?? min ?? 0;
+        if (min !== undefined) value = Math.max(min, value);
+        if (max !== undefined) value = Math.min(max, value);
+
+        // 表示用の文字列バッファ(キー入力中の未確定値をそのまま表示するためnumberではなくstringで保持)
+        let inputText = String(value);
+
+        const created: Phaser.GameObjects.GameObject[] = [];
+
+        const centerY = height / 2 - 40;
+        const buttonSize = 50;
+        const valueBoxWidth = 160;
+        const gap = 20;
+
+        // マイナスボタン
+        const minusButton = new Phaser.GameObjects.Rectangle(
+            this.scene,
+            width / 2 - valueBoxWidth / 2 - gap - buttonSize / 2,
+            centerY,
+            buttonSize,
+            buttonSize,
+            0x000000,
+        ).setStrokeStyle(1, 0xffffff);
+        minusButton.setInteractive({ useHandCursor: true });
+        this.ui_layer.add(minusButton);
+        created.push(minusButton);
+
+        const minusText = new Phaser.GameObjects.Text(
+            this.scene,
+            minusButton.x,
+            centerY,
+            "-",
+            this.text_style,
+        ).setOrigin(0.5);
+        this.ui_layer.add(minusText);
+        created.push(minusText);
+
+        // プラスボタン
+        const plusButton = new Phaser.GameObjects.Rectangle(
+            this.scene,
+            width / 2 + valueBoxWidth / 2 + gap + buttonSize / 2,
+            centerY,
+            buttonSize,
+            buttonSize,
+            0x000000,
+        ).setStrokeStyle(1, 0xffffff);
+        plusButton.setInteractive({ useHandCursor: true });
+        this.ui_layer.add(plusButton);
+        created.push(plusButton);
+
+        const plusText = new Phaser.GameObjects.Text(this.scene, plusButton.x, centerY, "+", this.text_style).setOrigin(
+            0.5,
+        );
+        this.ui_layer.add(plusText);
+        created.push(plusText);
+
+        // 値表示ボックス
+        const valueBox = new Phaser.GameObjects.Rectangle(
+            this.scene,
+            width / 2,
+            centerY,
+            valueBoxWidth,
+            buttonSize,
+            0x000000,
+        ).setStrokeStyle(1, 0xffffff);
+        this.ui_layer.add(valueBox);
+        created.push(valueBox);
+
+        const valueText = new Phaser.GameObjects.Text(
+            this.scene,
+            width / 2,
+            centerY,
+            inputText,
+            this.text_style,
+        ).setOrigin(0.5);
+        this.ui_layer.add(valueText);
+        created.push(valueText);
+
+        // 決定ボタン
+        const decideY = centerY + buttonSize + 40;
+        const decideButton = new Phaser.GameObjects.Rectangle(
+            this.scene,
+            width / 2,
+            decideY,
+            160,
+            40,
+            0x000000,
+        ).setStrokeStyle(1, 0xffffff);
+        decideButton.setInteractive({ useHandCursor: true });
+        this.ui_layer.add(decideButton);
+        created.push(decideButton);
+
+        const decideText = new Phaser.GameObjects.Text(
+            this.scene,
+            width / 2,
+            decideY,
+            "決定",
+            this.text_style,
+        ).setOrigin(0.5);
+        this.ui_layer.add(decideText);
+        created.push(decideText);
+
+        // -/+ボタンがmin/maxに達しているかを視覚的に反映
+        const refreshButtonState = () => {
+            const current = Number(inputText);
+            const atMin = min !== undefined && Number.isFinite(current) && current <= min;
+            const atMax = max !== undefined && Number.isFinite(current) && current >= max;
+            minusButton.setAlpha(atMin ? 0.4 : 1);
+            plusButton.setAlpha(atMax ? 0.4 : 1);
+        };
+        refreshButtonState();
+
+        minusButton.on("pointerover", () => minusButton.setFillStyle(0x333333));
+        minusButton.on("pointerout", () => minusButton.setFillStyle(0x000000));
+        plusButton.on("pointerover", () => plusButton.setFillStyle(0x333333));
+        plusButton.on("pointerout", () => plusButton.setFillStyle(0x000000));
+        decideButton.on("pointerover", () => decideButton.setFillStyle(0x333333));
+        decideButton.on("pointerout", () => decideButton.setFillStyle(0x000000));
+
+        minusButton.on("pointerdown", () => {
+            let current = Number(inputText);
+            if (!Number.isFinite(current)) current = min ?? 0;
+            current -= step;
+            if (min !== undefined) current = Math.max(min, current);
+            if (max !== undefined) current = Math.min(max, current);
+            inputText = String(current);
+            valueText.setText(inputText);
+            refreshButtonState();
+        });
+
+        plusButton.on("pointerdown", () => {
+            let current = Number(inputText);
+            if (!Number.isFinite(current)) current = min ?? 0;
+            current += step;
+            if (min !== undefined) current = Math.max(min, current);
+            if (max !== undefined) current = Math.min(max, current);
+            inputText = String(current);
+            valueText.setText(inputText);
+            refreshButtonState();
+        });
+
+        // このメソッドで生成した全GameObjectとキーボードリスナーを破棄する
+        const cleanup = () => {
+            for (const obj of created) {
+                obj.destroy();
+            }
+            this.scene.input.keyboard?.off("keydown", keydownHandler);
+        };
+
+        // 決定処理(決定ボタン押下 / Enterキー共通)
+        // キー入力中はmin/maxチェックを行わず、決定時にのみ数値へ変換しクランプする
+        const confirm = () => {
+            const parsed = Number(inputText);
+            const finalValueRaw =
+                inputText !== "" && inputText !== "-" && Number.isFinite(parsed) ? parsed : (min ?? 0);
+            let finalValue = finalValueRaw;
+            if (min !== undefined) finalValue = Math.max(min, finalValue);
+            if (max !== undefined) finalValue = Math.min(max, finalValue);
+            setVariable(key, finalValue);
+            cleanup();
+            this.hit_area.setInteractive({ useHandCursor: true });
+            this.next();
+        };
+
+        decideButton.on("pointerdown", () => {
+            confirm();
+        });
+
+        // キーボード入力(0-9で追記、Backspaceで削除、Enterで決定)
+        const allowNegative = min === undefined || min < 0;
+        const keydownHandler = (event: KeyboardEvent) => {
+            if (event.key >= "0" && event.key <= "9") {
+                inputText += event.key;
+            } else if (event.key === "-" && allowNegative && inputText === "") {
+                inputText = "-";
+            } else if (event.key === "Backspace") {
+                inputText = inputText.slice(0, -1);
+            } else if (event.key === "Enter") {
+                confirm();
+                return;
+            } else {
+                return;
+            }
+            valueText.setText(inputText);
+            refreshButtonState();
+        };
+        this.scene.input.keyboard?.on("keydown", keydownHandler);
     }
 
     private showWebLink(url: string, text: string | undefined, target: string | undefined = "_blank") {
@@ -488,7 +700,7 @@ export class TimelinePlayer {
             // テキストを全表示（タイピングエフェクトをスキップ）
             const currentEvent = this.timeline?.[this.timeline_index - 1];
             if (currentEvent?.event === EventTypeEnum.SetDialog) {
-                this.message_dialog.setText(currentEvent.text);
+                this.message_dialog.setText(interpolateVariables(currentEvent.text));
             }
         }
 
@@ -534,7 +746,10 @@ export class TimelinePlayer {
                 this.message_dialog.setTextBoxFillColor(color, alpha);
 
                 // タイピングエフェクトを開始し、タイマーを保存
-                this.typing_timer = this.message_dialog.setTextWithTypingEffect(timeline_event.text, 50);
+                this.typing_timer = this.message_dialog.setTextWithTypingEffect(
+                    interpolateVariables(timeline_event.text),
+                    50,
+                );
                 break;
 
             case EventTypeEnum.ClearDialog: // ダイアログ削除イベント
@@ -612,6 +827,26 @@ export class TimelinePlayer {
             case EventTypeEnum.ClearSound: // Soundクリアイベント
                 this.clearSound(timeline_event.key);
                 this.next(); // すぐに次のタイムラインを実行する
+                break;
+
+            case EventTypeEnum.SetVariable: // 変数設定イベント
+                setVariable(timeline_event.key, timeline_event.value);
+                this.next(); // すぐに次のタイムラインを実行する
+                break;
+
+            case EventTypeEnum.ClearVariable: // 変数クリアイベント
+                clearVariable(timeline_event.key);
+                this.next(); // すぐに次のタイムラインを実行する
+                break;
+
+            case EventTypeEnum.InputNumber: // 数値入力イベント
+                this.setNumberInput(
+                    timeline_event.key,
+                    timeline_event.min,
+                    timeline_event.max,
+                    timeline_event.defaultValue,
+                    timeline_event.step ?? 1,
+                );
                 break;
 
             default:

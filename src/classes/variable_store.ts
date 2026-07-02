@@ -1,0 +1,47 @@
+import type { VariableCondition, VariableValue } from "../types/timeline";
+
+const variables = new Map<string, VariableValue>();
+
+export function setVariable(key: string, value: VariableValue): void {
+    variables.set(key, value);
+}
+
+export function clearVariable(key: string): void {
+    variables.delete(key);
+}
+
+export function getVariable(key: string): VariableValue | undefined {
+    return variables.get(key);
+}
+
+// Choice/MultiChoiceの表示条件を判定する
+export function evaluateCondition(condition: VariableCondition): boolean {
+    const current = getVariable(condition.key);
+
+    switch (condition.operator) {
+        case "exists":
+            return current !== undefined;
+        case "notExists":
+            return current === undefined;
+        case "eq":
+            return current === condition.value;
+        case "neq":
+            return current !== condition.value;
+        case "gt":
+            return typeof current === "number" && typeof condition.value === "number" && current > condition.value;
+        case "gte":
+            return typeof current === "number" && typeof condition.value === "number" && current >= condition.value;
+        case "lt":
+            return typeof current === "number" && typeof condition.value === "number" && current < condition.value;
+        case "lte":
+            return typeof current === "number" && typeof condition.value === "number" && current <= condition.value;
+    }
+}
+
+// テキスト中の{{変数名}}を変数値に置換する(未定義変数は空文字)
+export function interpolateVariables(text: string): string {
+    return text.replace(/\{\{\s*([\w.-]+)\s*\}\}/g, (_, key: string) => {
+        const value = getVariable(key);
+        return value === undefined ? "" : String(value);
+    });
+}
