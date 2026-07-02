@@ -7,14 +7,14 @@ if [ "${CURRNENT_DIR}" == "role-playing-game-build-with-phaser" ]; then
     echo "Origin URL: ${GIT_REMOTE_ORIGIN_URL}"
     exit 0
 fi
-if [ "$GIT_REMOTE_ORIGIN_URL" == "https://github.com/CHUBU-TELECOMMUNICATIONS-CO-INC/role-playing-game-build-with-phaser.git" ]; then
+if [ "$GIT_REMOTE_ORIGIN_URL" == "https://github.com/m10i1986/role-playing-game-build-with-phaser.git" ]; then
     git remote remove origin
 fi
 
 if git remote get-url upstream > /dev/null ; then
     echo "Upstream remote already exists."
 else
-    git remote add upstream https://github.com/CHUBU-TELECOMMUNICATIONS-CO-INC/role-playing-game-build-with-phaser.git
+    git remote add upstream https://github.com/m10i1986/role-playing-game-build-with-phaser.git
 fi
 git fetch upstream
 git merge upstream/main
