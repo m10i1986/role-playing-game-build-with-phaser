@@ -34,7 +34,8 @@ export const senarioData: Timelines = {
             event: EventTypeEnum.Choice,
             choices: [
                 { text: "unit01へ", key: "unit01" },
-                { text: "test", key: "test" },
+                { text: "MultiChoice", key: "multi_choice" },
+                { text: "Calculation", key: "calculation" },
             ],
         },
     ],
@@ -51,12 +52,12 @@ export const senarioData: Timelines = {
         {
             event: EventTypeEnum.Choice,
             choices: [
-                { text: "はい", key: "test" },
+                { text: "はい", key: "multi_choice" },
                 { text: "いいえ", key: "unit01" },
             ],
         },
     ],
-    test: [
+    multi_choice: [
         { event: EventTypeEnum.SetDialog, text: "問題です。\n野菜なのはどれ？\n”正しいもの” を全て選択しなさい。" },
         {
             event: EventTypeEnum.MultiChoice,
@@ -67,13 +68,12 @@ export const senarioData: Timelines = {
                 { text: "白米", correct: false },
                 { text: "牛肉", correct: false },
             ],
-            correctKey: "test_correct",
-            incorrectKey: "test_incorrect",
+            correctKey: "multi_choice_correct",
+            incorrectKey: "multi_choice_incorrect",
             shuffle: true,
         },
-        { event: EventTypeEnum.TimelineTransition, key: "ending" },
     ],
-    test_correct: [
+    multi_choice_correct: [
         {
             event: EventTypeEnum.SetDialog,
             text: "正解です！",
@@ -85,7 +85,7 @@ export const senarioData: Timelines = {
         },
         {
             event: EventTypeEnum.SetDialog,
-            text: "以上でテストは終了です\n終了しますか？",
+            text: "以上でテストは終了です\t次に進みますか？",
             actorName: "システム",
             textFillColor: "#0000ff",
             textFillAlpha: 0.5,
@@ -95,12 +95,12 @@ export const senarioData: Timelines = {
         {
             event: EventTypeEnum.Choice,
             choices: [
-                { text: "はい(終了)", key: "ending" },
-                { text: "いいえ(もう一度テスト)", key: "test" },
+                { text: "はい(終了)", key: "calculation" },
+                { text: "いいえ(もう一度テスト)", key: "multi_choice" },
             ],
         },
     ],
-    test_incorrect: [
+    multi_choice_incorrect: [
         {
             event: EventTypeEnum.SetDialog,
             text: "残念、不正解です",
@@ -122,8 +122,74 @@ export const senarioData: Timelines = {
         {
             event: EventTypeEnum.Choice,
             choices: [
-                { text: "はい(もう一度テスト)", key: "test" },
-                { text: "いいえ(最初に戻る)", key: "unit01" },
+                { text: "はい(もう一度テスト)", key: "multi_choice" },
+                { text: "いいえ(次に進む)", key: "calculation" },
+            ],
+        },
+    ],
+
+    calculation: [
+        { event: EventTypeEnum.SetDialog, text: "計算問題です" },
+        { event: EventTypeEnum.SetDialog, text: "1 + 1 = ?" },
+        {
+            event: EventTypeEnum.InputNumber,
+            key: "calc_answer",
+            min: -100,
+            max: 100,
+            defaultValue: 0,
+            step: 1,
+        },
+        { event: EventTypeEnum.ClearDialog },
+        { event: EventTypeEnum.SetDialog, text: "あなたの回答は {{calc_answer}} です" },
+        {
+            event: EventTypeEnum.Choice,
+            choices: [
+                {
+                    text: "答え合わせをする",
+                    key: "calculation_correct",
+                    condition: { event: EventTypeEnum.GetVariable, key: "calc_answer", operator: "eq", value: 2 },
+                },
+                {
+                    text: "答え合わせをする",
+                    key: "calculation_incorrect",
+                    condition: { event: EventTypeEnum.GetVariable, key: "calc_answer", operator: "neq", value: 2 },
+                },
+            ],
+        },
+    ],
+    calculation_correct: [
+        {
+            event: EventTypeEnum.SetDialog,
+            text: "正解です！",
+            actorName: "システム",
+            textFillColor: "#008000",
+            textFillAlpha: 0.5,
+            actorFillColor: "#0000ff",
+            actorFillAlpha: 0.5,
+        },
+        {
+            event: EventTypeEnum.Choice,
+            choices: [
+                { text: "はい(もう一度テスト)", key: "calculation" },
+                { text: "いいえ(次に進む)", key: "ending" },
+            ],
+        },
+    ],
+    calculation_incorrect: [
+        {
+            event: EventTypeEnum.SetDialog,
+            text: "残念、不正解です。正解は 2 でした",
+            actorName: "システム",
+            textFillColor: "#ff0000",
+            textFillAlpha: 0.5,
+            actorFillColor: "#0000ff",
+            actorFillAlpha: 0.5,
+        },
+        {
+            event: EventTypeEnum.Choice,
+            choices: [
+                { text: "はい(もう一度テスト)", key: "calculation" },
+                { text: "いいえ(次に進む)", key: "ending" },
             ],
         },
     ],
