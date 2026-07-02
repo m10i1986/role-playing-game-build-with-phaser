@@ -755,6 +755,7 @@ export class TimelinePlayer {
             case EventTypeEnum.ClearDialog: // ダイアログ削除イベント
                 this.message_dialog.clearActorNameText();
                 this.message_dialog.clearText();
+                this.next(); // すぐに次のタイムラインを実行する
                 break;
 
             case EventTypeEnum.SetBackground: // 背景設定イベント
