@@ -1,4 +1,5 @@
 import { type Choice, EventTypeEnum, type MultiChoice, type Timeline } from "../types/timeline";
+import { recordAnswer, sendGameResult } from "./game_session";
 import type { MessageDialog } from "./message_dialog";
 import { clearVariable, evaluateCondition, interpolateVariables, setVariable } from "./variable_store";
 
@@ -196,6 +197,8 @@ export class TimelinePlayer {
 
             // ボタンクリックでシーンをリスタートし、指定のタイムラインを実行する
             button.on("pointerdown", () => {
+                // 選択結果を回答履歴に記録
+                recordAnswer("choice", choice.key, choice.text);
                 // restart()の引数がシーンのinit()の引数に渡される
                 this.scene.scene.restart({ id: choice.key });
             });
@@ -362,6 +365,12 @@ export class TimelinePlayer {
                     }
                 }
             }
+
+            // 選択結果を回答履歴に記録
+            const selectedTexts = Array.from(selected)
+                .sort((a, b) => a - b)
+                .map((idx) => visible_choices[idx].text);
+            recordAnswer("multi_choice", isCorrect ? correctKey : incorrectKey, selectedTexts);
 
             // 遷移（restartでtimeline idを渡す）
             if (isCorrect && correctKey) {
@@ -549,6 +558,7 @@ export class TimelinePlayer {
             if (min !== undefined) finalValue = Math.max(min, finalValue);
             if (max !== undefined) finalValue = Math.min(max, finalValue);
             setVariable(key, finalValue);
+            recordAnswer("input_number", key, finalValue);
             cleanup();
             this.hit_area.setInteractive({ useHandCursor: true });
             this.next();
@@ -790,6 +800,10 @@ export class TimelinePlayer {
                 break;
 
             case EventTypeEnum.SceneTransition: // シーン遷移イベント
+                if (timeline_event.key === "ending") {
+                    // エンディングへの遷移時に結果送信先が設定されていればゲーム結果を送信する
+                    sendGameResult();
+                }
                 // 指定のシーンに遷移する
                 // start()の第2引数がシーンのinit()の引数に渡される
                 this.scene.scene.start(timeline_event.key, timeline_event.data);

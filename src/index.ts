@@ -1,6 +1,10 @@
 import "./style.css";
 import * as Phaser from "phaser";
+import { initGameSession } from "./classes/game_session";
 import { scenes } from "./scene/index";
+
+// URLクエリパラメータ(resultUrl, token)の読み取りとプレイ開始時刻の記録
+initGameSession();
 
 const config: Phaser.Types.Core.GameConfig = {
     type: Phaser.AUTO, // webGLを使うかcanvasを使うかをphaserが自動で判断してくれる
