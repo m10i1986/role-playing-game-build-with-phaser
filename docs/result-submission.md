@@ -85,6 +85,21 @@ http://localhost:5173/?resultUrl=http%3A%2F%2Flocalhost%3A3000%2Fapi%2Fgame-resu
 | `value` | `string \| number \| boolean \| (string \| number \| boolean)[]` | 回答内容。`choice` は選択したテキスト、`multi_choice` は選択した全テキストの配列、`input_number` は入力された数値。 |
 | `elapsedMs` | `number` | ゲーム開始からその回答が行われるまでの経過時間(ミリ秒)。 |
 
+### 同一keyへの複数回回答（再挑戦・途中経過）について
+
+`recordAnswer()` は呼ばれるたびに `answers` へ追記するのみで、同じ `key` の既存レコードを上書き・削除することはありません。そのため、不正解による再挑戦や数値入力のやり直しなど、同じ `key` に対して複数回回答した場合は、**すべての試行が`elapsedMs`付きで時系列に残ります**。
+
+例: `multi_choice` で1回目に不正解、再挑戦して2回目に正解した場合
+
+```json
+"answers": [
+  { "type": "multi_choice", "key": "multi_choice_incorrect", "value": ["植物油"], "elapsedMs": 15000 },
+  { "type": "multi_choice", "key": "multi_choice_correct", "value": ["バナナ", "リンゴ"], "elapsedMs": 32000 }
+]
+```
+
+最終的な回答のみを集計したい場合は、サーバー側で同じ `type`/`key` グループのうち `elapsedMs` が最大のもの（＝最後に記録されたもの）を採用するなど、送信データ側ではなく集計側で絞り込む必要があります。
+
 ## 実装箇所
 
 - [src/classes/game_session.ts](../src/classes/game_session.ts) — URLパラメータの読み取り、回答履歴の保持、結果送信処理。
