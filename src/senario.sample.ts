@@ -41,12 +41,12 @@ export const senarioData: Timelines = {
     ],
 
     unit01: [
-        { event: EventTypeEnum.SetBackground, key: "sample01" },
-        { event: EventTypeEnum.ClearDialog }, //一旦画面を止めるためにクリア
+        //{ event: EventTypeEnum.SetBackground, key: "sample01" },
+        { event: EventTypeEnum.ClearDialog },
         { event: EventTypeEnum.TimelineTransition, key: "unit02" },
     ],
     unit02: [
-        { event: EventTypeEnum.SetBackground, key: "sample02" },
+        //{ event: EventTypeEnum.SetBackground, key: "sample02" },
         { event: EventTypeEnum.ClearDialog },
         { event: EventTypeEnum.SetDialog, text: "テストに進みますか？" },
         {

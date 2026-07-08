@@ -21,7 +21,7 @@ export class TitleScene extends Phaser.Scene {
         const { width, height } = this.game.canvas;
 
         // 背景色を白に設定
-        this.cameras.main.setBackgroundColor("#ffffff");
+        this.cameras.main.setBackgroundColor("#000000");
 
         // タイトル画像を追加（初期透明度を0に設定）
         const logo_image = this.add.image(width / 2, height / 2, "title");
