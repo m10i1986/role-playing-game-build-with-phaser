@@ -1,4 +1,5 @@
 import type { VariableValue } from "../types/timeline";
+import { encryptResultPayload } from "./result_encryption";
 
 // 回答の種類
 export type AnswerRecordType = "choice" | "multi_choice" | "input_number";
@@ -14,15 +15,17 @@ export type AnswerRecord = {
 // 結果送信先の設定(URLクエリパラメータから取得)
 let resultUrl: string | undefined;
 let resultToken: string | undefined;
+let resultPublicKey: string | undefined;
 let started_at: number | undefined;
 
 const answers: AnswerRecord[] = [];
 
-// URLクエリパラメータ(resultUrl, token)から結果送信先を読み取り、プレイ開始時刻を記録する
+// URLクエリパラメータ(resultUrl, token, publicKey)から結果送信先を読み取り、プレイ開始時刻を記録する
 export function initGameSession(): void {
     const params = new URLSearchParams(window.location.search);
     resultUrl = params.get("resultUrl") ?? undefined;
     resultToken = params.get("token") ?? undefined;
+    resultPublicKey = params.get("publicKey") ?? undefined;
     started_at = Date.now();
     answers.length = 0;
 }
@@ -34,6 +37,7 @@ export function recordAnswer(type: AnswerRecordType, key: string, value: Variabl
 }
 
 // 結果送信先が設定されている場合、回答履歴・プレイ時間をJSONでPOST送信する
+// publicKeyが指定されている場合はECIES(ECDH + AES-GCM)で本文を暗号化してから送信する
 export async function sendGameResult(): Promise<void> {
     if (!resultUrl) {
         return;
@@ -48,10 +52,12 @@ export async function sendGameResult(): Promise<void> {
     };
 
     try {
+        const requestBody = resultPublicKey ? await encryptResultPayload(body, resultPublicKey) : body;
+
         await fetch(resultUrl, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(body),
+            body: JSON.stringify(requestBody),
         });
     } catch (error) {
         console.error("[ERROR] ゲーム結果の送信に失敗しました", error);

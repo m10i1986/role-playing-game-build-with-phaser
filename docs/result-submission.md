@@ -5,24 +5,25 @@
 ## 起動URL
 
 ```
-https://example.com/game/?resultUrl=<結果送信先URL(URLエンコード)>&token=<セッションを識別するトークン>
+https://example.com/game/?resultUrl=<結果送信先URL(URLエンコード)>&token=<セッションを識別するトークン>&publicKey=<サーバーの公開鍵(Base64, URLエンコード)>
 ```
 
 | パラメータ | 必須 | 説明 |
 | --- | --- | --- |
 | `resultUrl` | ○ | 結果をPOST送信する送信先URL。URLエンコードして指定する。未指定の場合は送信自体を行わない。 |
 | `token` | 任意 | セッションやプレイヤーを識別するためのトークン。送信データにそのまま含まれる。 |
+| `publicKey` | 任意 | サーバーのECDH(P-256)公開鍵(raw形式・非圧縮ポイント65バイトをBase64エンコードしたもの)をURLエンコードして指定する。指定した場合、送信データは[暗号化](#暗号化)される。未指定の場合は平文のJSONを送信する。 |
 
 ### サンプルURL
 
 ```
-https://example.com/game/?resultUrl=https%3A%2F%2Fapi.example.com%2Fgame-results&token=abc123
+https://example.com/game/?resultUrl=https%3A%2F%2Fapi.example.com%2Fgame-results&token=abc123&publicKey=BPqG...(Base64・URLエンコード済み)
 ```
 
 ローカル開発サーバーの例:
 
 ```
-http://localhost:5173/?resultUrl=http%3A%2F%2Flocalhost%3A3000%2Fapi%2Fgame-results&token=test-session-001
+http://localhost:5173/?resultUrl=http%3A%2F%2Flocalhost%3A3000%2Fapi%2Fgame-results&token=test-session-001&publicKey=BPqG...
 ```
 
 ## 送信タイミング
@@ -41,7 +42,7 @@ http://localhost:5173/?resultUrl=http%3A%2F%2Flocalhost%3A3000%2Fapi%2Fgame-resu
 - Content-Type: `application/json`
 - 送信先: 起動時に指定した `resultUrl`
 
-### ボディ
+### ボディ（`publicKey` 未指定時・平文）
 
 ```json
 {
@@ -100,13 +101,48 @@ http://localhost:5173/?resultUrl=http%3A%2F%2Flocalhost%3A3000%2Fapi%2Fgame-resu
 
 最終的な回答のみを集計したい場合は、サーバー側で同じ `type`/`key` グループのうち `elapsedMs` が最大のもの（＝最後に記録されたもの）を採用するなど、送信データ側ではなく集計側で絞り込む必要があります。
 
+## 暗号化
+
+`publicKey` パラメータが指定されている場合、送信ボディは **ECIES（ECDH P-256 + AES-256-GCM）** 方式で暗号化されます。ブラウザ標準の WebCrypto API (`crypto.subtle`) のみで実装されており、追加ライブラリは不要です。
+
+### 暗号化の流れ
+
+1. 起動URLで受け取った `publicKey`（サーバーのECDH公開鍵、raw形式・Base64）を `crypto.subtle.importKey` で読み込む。
+2. 送信のたびに一時的なECDH鍵ペア（Ephemeral Key Pair）を新規生成する。
+3. サーバー公開鍵と一時秘密鍵から `crypto.subtle.deriveKey` でAES-GCM共有鍵を導出する（ECDH鍵交換）。
+4. ランダムな12バイトのIVを生成し、AES-256-GCMで送信ボディ（JSON）を暗号化する。
+5. 一時鍵ペアの公開鍵・IV・暗号文をBase64エンコードしてJSONとしてPOSTする。
+
+一時鍵ペアは送信のたびに使い捨てるため、サーバー側は都度受け取った `ephemeralPublicKey` と自身の秘密鍵からECDHで同じ共有鍵を導出し、AES-GCMで復号する。
+
+### ボディ（`publicKey` 指定時・暗号化）
+
+```json
+{
+  "ephemeralPublicKey": "BPqG...(Base64、raw形式・非圧縮ポイント65バイト)",
+  "iv": "3F2a...(Base64、12バイト)",
+  "ciphertext": "9dQx...(Base64、AES-256-GCM暗号文。復号すると平文ボディのJSONが得られる)"
+}
+```
+
+| フィールド | 型 | 説明 |
+| --- | --- | --- |
+| `ephemeralPublicKey` | `string` | 送信のたびに生成される一時ECDH公開鍵(raw形式)をBase64エンコードしたもの。 |
+| `iv` | `string` | AES-GCMの初期化ベクトル(12バイト)をBase64エンコードしたもの。 |
+| `ciphertext` | `string` | 暗号化された本文。復号すると `token`/`playTimeMs`/`answers` を含む平文ボディと同じJSONになる。AES-GCMの認証タグはciphertextの末尾に含まれる。 |
+
+実装: [src/classes/result_encryption.ts](../src/classes/result_encryption.ts)
+
 ## 実装箇所
 
 - [src/classes/game_session.ts](../src/classes/game_session.ts) — URLパラメータの読み取り、回答履歴の保持、結果送信処理。
+- [src/classes/result_encryption.ts](../src/classes/result_encryption.ts) — `publicKey` を使ったECIES(ECDH + AES-GCM)暗号化処理。
 - [src/index.ts](../src/index.ts) — 起動時に `initGameSession()` を呼び出し、セッションを初期化。
 - [src/classes/timeline_player.ts](../src/classes/timeline_player.ts) — 選択肢・数値入力のたびに `recordAnswer()` を呼び出して回答を記録し、エンディング遷移時に `sendGameResult()` を呼び出して送信する。
 
 ## 注意事項
 
 - 送信は `fetch` によるベストエフォートで行われ、失敗した場合はコンソールにエラーを出力するのみで、リトライは行いません。
-- 通信内容は暗号化されません。機密性の高い情報を扱う場合はHTTPS通信を使用し、必要に応じてサーバー側で認可・改ざん検知の仕組みを用意してください。
+- `publicKey` が未指定の場合、通信内容は暗号化されません。機密性の高い情報を扱う場合は `publicKey` を指定するか、HTTPS通信を使用し、必要に応じてサーバー側で認可・改ざん検知の仕組みを用意してください。
+- WebCrypto APIはセキュアコンテキスト（HTTPSまたはlocalhost）でのみ利用可能です。HTTP環境（localhost以外）では `crypto.subtle` が利用できず暗号化に失敗するため、その場合は `publicKey` を指定しないでください。
+- `publicKey` はURLクエリパラメータとして平文で渡されるため、URL自体の漏洩（ブラウザ履歴・リファラ・アクセスログ等）には注意してください。公開鍵自体の漏洩は暗号方式の安全性を損ないませんが、鍵の配布経路が信頼できることを別途担保する必要があります（例: HTTPSでの起動URL発行、鍵のローテーション）。
