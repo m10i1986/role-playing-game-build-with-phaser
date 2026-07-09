@@ -103,11 +103,13 @@ type SceneTransitionEvent = {
 type ChoiceEvent = {
     event: EventTypeEnum.Choice;
     choices: Choice[];
+    scoreKey?: string; // choice.pointの加算先変数名(未設定時は"score")
 };
 export type Choice = {
     text: string;
     key: string; // 選択肢選択時の遷移先キー
     condition?: VariableCondition; // 表示条件(未設定時は常に表示)
+    point?: number; // 選択時にscoreKeyへ加算するポイント(未設定時は加点しない)
 };
 
 // 複数選択肢イベント
@@ -119,6 +121,7 @@ type MultiChoiceEvent = {
     minSelect?: number; // 最小選択数(デフォルトは0)
     maxSelect?: number; // 最大選択数(デフォルトは全選択可能)
     shuffle?: boolean; // 選択肢をシャッフルするかどうか(デフォルトはfalse)
+    scoreKey?: string; // 採点結果を加算する変数名(未設定時は"score")
 };
 export type MultiChoice = {
     text: string;

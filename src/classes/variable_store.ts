@@ -14,6 +14,15 @@ export function getVariable(key: string): VariableValue | undefined {
     return variables.get(key);
 }
 
+// スコア用変数(key)に対して数値を加算する(未設定時は0から開始)
+export function addScore(key: string, delta: number): number {
+    const current = getVariable(key);
+    const base = typeof current === "number" ? current : 0;
+    const next = base + delta;
+    setVariable(key, next);
+    return next;
+}
+
 // Choice/MultiChoiceの表示条件を判定する
 export function evaluateCondition(condition: VariableCondition): boolean {
     const current = getVariable(condition.key);

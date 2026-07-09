@@ -1,7 +1,7 @@
 import { type Choice, EventTypeEnum, type MultiChoice, type Timeline } from "../types/timeline";
 import { recordAnswer, sendGameResult } from "./game_session";
 import type { MessageDialog } from "./message_dialog";
-import { clearVariable, evaluateCondition, interpolateVariables, setVariable } from "./variable_store";
+import { addScore, clearVariable, evaluateCondition, interpolateVariables, setVariable } from "./variable_store";
 
 export class TimelinePlayer {
     private background_layer: Phaser.GameObjects.Container;
@@ -154,7 +154,7 @@ export class TimelinePlayer {
     }
 
     // 選択肢ボタンをセット
-    private setChoiceButtons(choices: Choice[]) {
+    private setChoiceButtons(choices: Choice[], scoreKey: string = "score") {
         // 表示条件を満たす選択肢のみに絞り込む
         const visible_choices = choices.filter((choice) => !choice.condition || evaluateCondition(choice.condition));
 
@@ -197,6 +197,10 @@ export class TimelinePlayer {
 
             // ボタンクリックでシーンをリスタートし、指定のタイムラインを実行する
             button.on("pointerdown", () => {
+                // pointが設定されていればscoreKeyへ加算する(correctKey相当の分岐は+point/incorrectKey相当は未設定のため+0)
+                if (choice.point !== undefined) {
+                    addScore(scoreKey, choice.point);
+                }
                 // 選択結果を回答履歴に記録
                 recordAnswer("choice", choice.key, choice.text);
                 // restart()の引数がシーンのinit()の引数に渡される
@@ -228,6 +232,7 @@ export class TimelinePlayer {
         shuffle: boolean = false,
         minSelect: number = 0,
         maxSelect?: number,
+        scoreKey: string = "score",
     ) {
         // 表示条件を満たす選択肢のみに絞り込む
         const visible_choices = multiChoices.filter(
@@ -365,6 +370,9 @@ export class TimelinePlayer {
                     }
                 }
             }
+
+            // 正誤に応じてscoreKeyへ加点する(correctKey相当なら+1、incorrectKey相当なら+0)
+            addScore(scoreKey, isCorrect ? 1 : 0);
 
             // 選択結果を回答履歴に記録
             const selectedTexts = Array.from(selected)
@@ -810,7 +818,7 @@ export class TimelinePlayer {
                 break;
 
             case EventTypeEnum.Choice: // 選択肢イベント
-                this.setChoiceButtons(timeline_event.choices);
+                this.setChoiceButtons(timeline_event.choices, timeline_event.scoreKey ?? "score");
                 break;
 
             case EventTypeEnum.MultiChoice: // 選択肢イベント
@@ -821,6 +829,7 @@ export class TimelinePlayer {
                     timeline_event.shuffle,
                     timeline_event.minSelect,
                     timeline_event.maxSelect,
+                    timeline_event.scoreKey ?? "score",
                 );
                 break;
 
