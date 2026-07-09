@@ -38,7 +38,8 @@
 
 - **テキスト補間**: `SetDialog` の `text` 内の `{{変数名}}` が変数値に置換される（未定義なら空文字）
 - **表示条件**: `Choice` / `MultiChoice` の選択肢に `condition` を指定すると、条件を満たす場合のみ表示される（後述の [GetVariable](#getvariable--get_variable変数条件) を参照）
-- **スコア加算**: `Choice` の `point` や `MultiChoice` の正誤判定結果が `scoreKey`（デフォルト `"score"`）へ加算される
+- **スコア加算**: `Choice` の `point` や `MultiChoice` の正誤判定結果が `scoreKey`（デフォルト `"score"`）へ加算される。加算先の変数が未設定の場合は `0` を基準に加算される
+- **スコア初期値**: 専用のイベントは無いが、タイムライン先頭に `SetVariable` で `scoreKey` と同名の変数（デフォルト `"score"`）を設定すれば任意の初期値からスコア加算を開始できる（例は [SetVariable](#setvariable--set_variable変数設定) を参照）
 
 ---
 
@@ -354,6 +355,16 @@
 ```ts
 { event: EventTypeEnum.SetVariable, key: "visited_unit01", value: true },
 ```
+
+応用: スコアの初期値設定
+
+`Choice` / `MultiChoice` のスコア加算先（`scoreKey`、デフォルト `"score"`）は未設定時に `0` から加算が始まるため、`0` 以外の値から始めたい場合はタイムライン先頭で `SetVariable` により初期値を設定します。
+
+```ts
+{ event: EventTypeEnum.SetVariable, key: "score", value: 100 },
+```
+
+`scoreKey` を独自の名前にしている場合は、その名前に合わせて `key` を指定してください。
 
 ## ClearVariable / `clear_variable`（変数削除）
 
