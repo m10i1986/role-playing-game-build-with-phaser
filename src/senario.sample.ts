@@ -48,7 +48,6 @@ export const senarioData: Timelines = {
             ],
         },
     ],
-
     unit01: [
         //{ event: EventTypeEnum.SetBackground, key: "sample01" },
         { event: EventTypeEnum.ClearDialog },
@@ -62,17 +61,16 @@ export const senarioData: Timelines = {
             event: EventTypeEnum.Choice,
             choices: [
                 { text: "はい", key: "multi_choice" },
-                { text: "いいえ", key: "unit01" },
+                { text: "いいえ", key: "presentation" },
             ],
         },
     ],
-
     // 背景・画面枠・前景・BGM・Webリンクなど、演出系イベントをまとめたサンプル
     presentation: [
         //{ event: EventTypeEnum.SetBackground, key: "sample01", effect: "fadein" },
         //{ event: EventTypeEnum.SetFrame, key: "frame01" },
         //{ event: EventTypeEnum.AddForeground, key: "character01", x: 200, y: 400 },
-        { event: EventTypeEnum.PlaySound, key: "bgm01", loop: true },
+        // { event: EventTypeEnum.PlaySound, key: "bgm01", loop: true },
         { event: EventTypeEnum.SetDialog, text: "演出サンプルです。背景・画面枠・前景・BGMを設定しました" },
         { event: EventTypeEnum.ShowWebLink, url: "https://example.com/manual", text: "解説ページを開く" },
         { event: EventTypeEnum.SetDialog, text: "リンク先を確認したら、画面をクリックして先へ進んでください" },
@@ -85,7 +83,6 @@ export const senarioData: Timelines = {
             choices: [{ text: "戻る", key: "start" }],
         },
     ],
-
     multi_choice: [
         { event: EventTypeEnum.SetDialog, text: "問題です。\n野菜なのはどれ？\n”正しいもの” を全て選択しなさい。" },
         {
@@ -157,7 +154,6 @@ export const senarioData: Timelines = {
             ],
         },
     ],
-
     calculation: [
         { event: EventTypeEnum.SetDialog, text: "計算問題です" },
         { event: EventTypeEnum.SetDialog, text: "1 + 1 = ?" },

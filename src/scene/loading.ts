@@ -7,9 +7,6 @@ export class LoadingScene extends Phaser.Scene {
 
     // preload()はシーンが呼び出されたら実行される
     preload() {
-        this.load.image("title", "assets/image/common/title.png");
-        this.load.image("ending", "assets/image/common/ending.png");
-
         // Preload illustration files
         for (const key in illustrationFiles) {
             this.load.image(key, illustrationFiles[key]);
@@ -18,6 +15,13 @@ export class LoadingScene extends Phaser.Scene {
         // Preload music files
         for (const key in musicFiles) {
             this.load.audio(key, musicFiles[key]);
+        }
+
+        if (!this.textures.exists("title")) {
+            this.load.image("title", "assets/image/common/title.png");
+        }
+        if (!this.textures.exists("ending")) {
+            this.load.image("ending", "assets/image/common/ending.png");
         }
     }
 
