@@ -11,6 +11,7 @@ export enum EventTypeEnum {
     SceneTransition = "scene_transition",
     Choice = "choice",
     MultiChoice = "multi_choice",
+    SortOrder = "sort_order",
     ShowWebLink = "show_weblink",
     HideWebLink = "hide_weblink",
     PlaySound = "play_sound",
@@ -133,6 +134,19 @@ export type MultiChoice = {
     condition?: VariableCondition; // 表示条件(未設定時は常に表示)
 };
 
+// 並び替えイベント(選択肢をドラッグ&ドロップで正しい順序に並び替えさせる)
+type SortOrderEvent = {
+    event: EventTypeEnum.SortOrder;
+    items: SortOrderItem[]; // 正しい順序で記述する配列(表示時はshuffleされる)
+    correctKey: string; // 正解時のキー
+    incorrectKey: string; // 不正解時のキー
+    shuffle?: boolean; // 初期表示順をシャッフルするかどうか(デフォルトはtrue)
+    scoreKey?: string; // 採点結果を加算する変数名(未設定時は"score")
+};
+export type SortOrderItem = {
+    text: string;
+};
+
 // ウェブリンク表示イベント
 type ShowWebLinkEvent = {
     event: EventTypeEnum.ShowWebLink;
@@ -203,6 +217,7 @@ export type Timeline = (
     | SceneTransitionEvent
     | ChoiceEvent
     | MultiChoiceEvent
+    | SortOrderEvent
     | ShowWebLinkEvent
     | HideWebLinkEvent
     | PlaySoundEvent

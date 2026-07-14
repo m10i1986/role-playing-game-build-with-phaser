@@ -1,4 +1,4 @@
-import { type Choice, EventTypeEnum, type MultiChoice, type Timeline } from "../types/timeline";
+import { type Choice, EventTypeEnum, type MultiChoice, type SortOrderItem, type Timeline } from "../types/timeline";
 import { recordAnswer, sendGameResultWithPhaserWorks, sendGameResultWithPowerAutomate } from "./game_session";
 import type { MessageDialog } from "./message_dialog";
 import { addScore, clearVariable, evaluateCondition, interpolateVariables, setVariable } from "./variable_store";
@@ -355,6 +355,135 @@ export class TimelinePlayer {
                 this.scene.scene.restart({ id: incorrectKey });
             } else {
                 // キーが無ければ単にUIを再有効化する（必要なら）
+                this.hit_area.setInteractive({ useHandCursor: true });
+            }
+        });
+    }
+
+    // 並び替えUIをセット(ドラッグ&ドロップで選択肢の順序を入れ替えさせ、正しい順序かどうかを判定する)
+    private setSortOrderButtons(
+        items: SortOrderItem[],
+        correctKey: string,
+        incorrectKey: string,
+        shuffle: boolean = true,
+        scoreKey: string = "score",
+    ) {
+        if (items.length === 0) {
+            return;
+        }
+        this.hit_area.disableInteractive();
+
+        const button_height = 60;
+        const button_margin = 10;
+        const { width, height } = this.scene.game.canvas;
+        const button_group_height = button_height * items.length + button_margin * (items.length - 1);
+        const dialogReserve = 180; // ダイアログ領域分を下部に確保して、ボタン群を上にシフト
+        const button_group_origin_y = Math.max(20, height / 2 - button_group_height / 2 - dialogReserve);
+        const slotY = (slotIndex: number) =>
+            button_group_origin_y + button_height * (slotIndex + 0.5) + button_margin * slotIndex;
+
+        // 初期の表示順序を作成(shuffleの場合はFisher-Yatesで並び替え、正解順のまま出さないようにする)
+        const order = items.map((_, i) => i); // orderIndex(表示スロット) -> items配列上のインデックス
+        if (shuffle) {
+            for (let i = order.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                const tmp = order[i];
+                order[i] = order[j];
+                order[j] = tmp;
+            }
+        }
+
+        type SortButton = {
+            itemIndex: number;
+            button: Phaser.GameObjects.Rectangle;
+            label: Phaser.GameObjects.Text;
+        };
+
+        // order[slotIndex]のitemIndexに対応するSortButtonをslotIndexの位置へ配置する
+        const buttons: SortButton[] = order.map((itemIndex) => {
+            const button = this.createHoverButton(
+                width / 2,
+                0, // 位置は直後のlayout()で設定する
+                width - button_margin * 2,
+                button_height,
+                0x000000,
+                0x333333,
+            );
+            const label = this.createButtonLabel(width / 2, 0, items[itemIndex].text);
+            return { itemIndex, button, label };
+        });
+
+        let dragging: SortButton | undefined;
+
+        // 現在のorderに従って、ドラッグ中以外のボタン位置をアニメーションさせながら揃える
+        const layout = (animate: boolean) => {
+            buttons.forEach((sortButton) => {
+                if (sortButton === dragging) {
+                    return;
+                }
+                const slotIndex = order.indexOf(sortButton.itemIndex);
+                const y = slotY(slotIndex);
+                if (animate) {
+                    this.scene.tweens.add({ targets: [sortButton.button, sortButton.label], y, duration: 150 });
+                } else {
+                    sortButton.button.y = y;
+                    sortButton.label.y = y;
+                }
+            });
+        };
+        layout(false);
+
+        buttons.forEach((sortButton) => {
+            this.scene.input.setDraggable(sortButton.button);
+
+            sortButton.button.on("dragstart", () => {
+                dragging = sortButton;
+                this.ui_layer.bringToTop(sortButton.button);
+                this.ui_layer.bringToTop(sortButton.label);
+            });
+
+            sortButton.button.on("drag", (_pointer: Phaser.Input.Pointer, _dragX: number, dragY: number) => {
+                sortButton.button.y = dragY;
+                sortButton.label.setPosition(sortButton.button.x, dragY);
+                sortButton.label.x = width / 2;
+
+                // ドラッグ中のY座標から現在配置すべきスロットを求め、orderを組み替える
+                const fromSlot = order.indexOf(sortButton.itemIndex);
+                let toSlot = Math.round((dragY - button_group_origin_y) / (button_height + button_margin) - 0.5);
+                toSlot = Math.max(0, Math.min(items.length - 1, toSlot));
+                if (toSlot !== fromSlot) {
+                    order.splice(fromSlot, 1);
+                    order.splice(toSlot, 0, sortButton.itemIndex);
+                    layout(true);
+                }
+            });
+
+            sortButton.button.on("dragend", () => {
+                dragging = undefined;
+                layout(true);
+            });
+        });
+
+        // 下部に「判定する」ボタンを追加
+        const finishY = Math.max(60, height - dialogReserve - 40);
+        const finishButton = this.createHoverButton(width / 2, finishY, 240, 40, 0x000000, 0x222222);
+        this.createButtonLabel(width / 2, finishY, "この順番で判定する");
+
+        finishButton.on("pointerdown", () => {
+            // orderがitemsの元の並び(0,1,2,...)と一致していれば正解
+            const isCorrect = order.every((itemIndex, slotIndex) => itemIndex === slotIndex);
+
+            addScore(scoreKey, isCorrect ? 1 : 0);
+
+            // 判定時点の並び順(表示テキスト)を回答履歴に記録
+            const orderedTexts = order.map((itemIndex) => items[itemIndex].text);
+            recordAnswer("sort_order", isCorrect ? correctKey : incorrectKey, orderedTexts);
+
+            if (isCorrect && correctKey) {
+                this.scene.scene.restart({ id: correctKey });
+            } else if (!isCorrect && incorrectKey) {
+                this.scene.scene.restart({ id: incorrectKey });
+            } else {
                 this.hit_area.setInteractive({ useHandCursor: true });
             }
         });
@@ -740,6 +869,16 @@ export class TimelinePlayer {
                     timeline_event.shuffle,
                     timeline_event.minSelect,
                     timeline_event.maxSelect,
+                    timeline_event.scoreKey ?? "score",
+                );
+                break;
+
+            case EventTypeEnum.SortOrder: // 並び替えイベント
+                this.setSortOrderButtons(
+                    timeline_event.items,
+                    timeline_event.correctKey,
+                    timeline_event.incorrectKey,
+                    timeline_event.shuffle,
                     timeline_event.scoreKey ?? "score",
                 );
                 break;

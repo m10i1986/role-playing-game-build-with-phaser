@@ -15,7 +15,7 @@
 | 進行タイプ | 対象イベント | 動作 |
 | --- | --- | --- |
 | クリック待ち | `SetDialog` | 表示後、画面クリックで次のイベントへ進む |
-| 入力待ち | `Choice` / `MultiChoice` / `InputNumber` | プレイヤーの入力・決定で次へ進む |
+| 入力待ち | `Choice` / `MultiChoice` / `SortOrder` / `InputNumber` | プレイヤーの入力・決定で次へ進む |
 | 即時実行 | 上記以外 | 実行後すぐに次のイベントへ自動で進む |
 
 `SetDialog` のタイピング演出中にクリックすると、まず全文が即時表示され、もう一度クリックすると次のイベントへ進みます。
@@ -30,7 +30,7 @@
 | 1 | 前景 | `AddForeground` / `ClearForeground` |
 | 2 | 画面枠 | `SetFrame` |
 | 3 | メッセージダイアログ | `SetDialog` / `ClearDialog` |
-| 4 | UI（選択肢・Webリンク・数値入力など） | `Choice` / `MultiChoice` / `ShowWebLink` / `InputNumber` |
+| 4 | UI（選択肢・Webリンク・数値入力など） | `Choice` / `MultiChoice` / `SortOrder` / `ShowWebLink` / `InputNumber` |
 
 ### 変数ストア
 
@@ -58,6 +58,7 @@
 | `SceneTransition` | `scene_transition` | 別シーンへ遷移 | 遷移（終端） |
 | `Choice` | `choice` | 単一選択肢を表示 | 入力待ち |
 | `MultiChoice` | `multi_choice` | 複数選択問題を表示 | 入力待ち |
+| `SortOrder` | `sort_order` | 選択肢をドラッグ&ドロップで並び替える問題を表示 | 入力待ち |
 | `ShowWebLink` | `show_weblink` | Webリンクを表示 | 即時 |
 | `HideWebLink` | `hide_weblink` | Webリンクを消去 | 即時 |
 | `PlaySound` | `play_sound` | サウンドを再生 | 即時 |
@@ -290,6 +291,45 @@
 注意点:
 
 - 選択結果（選択したテキストの一覧）は回答履歴に記録され、ゲーム結果送信に含まれます
+- 問題文は直前に `SetDialog` で表示しておくのが定石です（ボタン群はダイアログ領域を避けて上寄せで配置されます）
+
+## SortOrder / `sort_order`（並び替え問題）
+
+選択肢をドラッグ&ドロップで並び替えさせる問題を表示します。プレイヤーはボタンをドラッグして順序を入れ替え、「この順番で判定する」ボタンで採点します。**現在の並び順が `items` の記述順（正しい順序）と完全一致した場合のみ正解**です。
+
+| プロパティ | 型 | 必須 | 説明 |
+| --- | --- | --- | --- |
+| `items` | SortOrderItem[] | ○ | 正しい順序で記述する選択肢の配列 |
+| `correctKey` | string | ○ | 正解時の遷移先タイムラインキー |
+| `incorrectKey` | string | ○ | 不正解時の遷移先タイムラインキー |
+| `shuffle` | boolean | 任意 | `true` で初期表示順をシャッフル（デフォルト `true`） |
+| `scoreKey` | string | 任意 | 採点結果の加算先変数名（デフォルト `"score"`）。正解で +1、不正解で +0 |
+
+`SortOrderItem`（選択肢1件）のプロパティ:
+
+| プロパティ | 型 | 必須 | 説明 |
+| --- | --- | --- | --- |
+| `text` | string | ○ | ボタンに表示するテキスト |
+
+```ts
+{ event: EventTypeEnum.SetDialog, text: "工程を正しい順番に並び替えてください" },
+{
+    event: EventTypeEnum.SortOrder,
+    items: [
+        { text: "① 材料を準備する" },
+        { text: "② 下ごしらえをする" },
+        { text: "③ 加熱する" },
+        { text: "④ 盛り付ける" },
+    ],
+    correctKey: "sort_order_correct",
+    incorrectKey: "sort_order_incorrect",
+},
+```
+
+注意点:
+
+- `shuffle: false` にすると `items` の記述順のまま表示されるため、通常はデフォルト（シャッフルあり）のまま使用してください
+- 判定時点の並び順（表示テキストの配列）は回答履歴に記録され、ゲーム結果送信に含まれます
 - 問題文は直前に `SetDialog` で表示しておくのが定石です（ボタン群はダイアログ領域を避けて上寄せで配置されます）
 
 ## ShowWebLink / `show_weblink`（Webリンク表示）

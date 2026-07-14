@@ -3,7 +3,7 @@ import { encryptResultPayload } from "./result_encryption";
 import { getVariable } from "./variable_store";
 
 // 回答の種類
-export type AnswerRecordType = "choice" | "multi_choice" | "input_number";
+export type AnswerRecordType = "choice" | "multi_choice" | "sort_order" | "input_number";
 
 // 1回分の回答履歴
 export type AnswerRecord = {

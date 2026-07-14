@@ -43,6 +43,7 @@ export const senarioData: Timelines = {
             choices: [
                 { text: "unit01へ", key: "unit01" },
                 { text: "MultiChoice", key: "multi_choice" },
+                { text: "SortOrder", key: "sort_order" },
                 { text: "Calculation", key: "calculation" },
                 { text: "Presentation(演出サンプル)", key: "presentation" },
             ],
@@ -150,6 +151,57 @@ export const senarioData: Timelines = {
             event: EventTypeEnum.Choice,
             choices: [
                 { text: "はい(もう一度テスト)", key: "multi_choice" },
+                { text: "いいえ(次に進む)", key: "calculation" },
+            ],
+        },
+    ],
+    sort_order: [
+        { event: EventTypeEnum.SetDialog, text: "問題です。\n料理の工程を正しい順番に並び替えてください。" },
+        {
+            event: EventTypeEnum.SortOrder,
+            items: [
+                { text: "材料を準備する" },
+                { text: "下ごしらえをする" },
+                { text: "加熱する" },
+                { text: "盛り付ける" },
+            ],
+            correctKey: "sort_order_correct",
+            incorrectKey: "sort_order_incorrect",
+            scoreKey: "score",
+        },
+    ],
+    sort_order_correct: [
+        {
+            event: EventTypeEnum.SetDialog,
+            text: "正解です！ 現在のスコア: {{score}}",
+            actorName: "システム",
+            textFillColor: "#008000",
+            textFillAlpha: 0.5,
+            actorFillColor: "#0000ff",
+            actorFillAlpha: 0.5,
+        },
+        {
+            event: EventTypeEnum.Choice,
+            choices: [
+                { text: "はい(もう一度)", key: "sort_order" },
+                { text: "いいえ(次に進む)", key: "calculation" },
+            ],
+        },
+    ],
+    sort_order_incorrect: [
+        {
+            event: EventTypeEnum.SetDialog,
+            text: "残念、不正解です",
+            actorName: "システム",
+            textFillColor: "#ff0000",
+            textFillAlpha: 0.5,
+            actorFillColor: "#0000ff",
+            actorFillAlpha: 0.5,
+        },
+        {
+            event: EventTypeEnum.Choice,
+            choices: [
+                { text: "はい(もう一度)", key: "sort_order" },
                 { text: "いいえ(次に進む)", key: "calculation" },
             ],
         },
