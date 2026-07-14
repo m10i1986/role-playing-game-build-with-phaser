@@ -66,6 +66,8 @@
 | `ClearVariable` | `clear_variable` | 変数を削除 | 即時 |
 | `GetVariable` | `get_variable` | 選択肢の表示条件（単体イベントではない） | - |
 | `InputNumber` | `input_number` | 数値入力UIを表示 | 入力待ち |
+| `SendGameResult` | `send_game_result` | ゲーム結果をPhaserWorksへ送信 | 即時 |
+| `SendGameResultWithPowerAutomate` | `send_game_result_with_power_automate` | ゲーム結果をPower Automateへ送信 | 即時 |
 
 ---
 
@@ -368,10 +370,10 @@
 
 応用: サーバー送信用の結果(result)を設定
 
-エンディング(`key: "ending"`)へ遷移する前に `SetVariable` で `result_success` / `result_score` を設定すると、その内容が `sendGameResult()` 送信時の `result` として送信されます（`result_success` は送信JSON上では `result.result`、`result_score` は `result.score` になります。詳細: [result-submission.md](result-submission.md)）。
+エンディング(`key: "ending"`)へ遷移する前に `SetVariable` で `result_success` / `result_score` を設定すると、その内容が `sendGameResultWithPhaserWorks()` 送信時の `result` として送信されます（`result_success` は送信JSON上では `result.success`、`result_score` は `result.score` になります。詳細: [result-submission.md](result-submission.md)）。
 
 ```ts
-{ event: EventTypeEnum.SetVariable, key: "result_success", value: true }, // boolean（未設定時はresult.resultがtrue）
+{ event: EventTypeEnum.SetVariable, key: "result_success", value: true }, // boolean（未設定時はresult.successがtrue）
 { event: EventTypeEnum.SetVariable, key: "result_score", value: 100 }, // number（未設定時はresult.scoreがnull）
 ```
 
@@ -452,6 +454,34 @@
 
 ---
 
+## SendGameResult / `send_game_result`（ゲーム結果送信・PhaserWorks向け）
+
+起動URLの `resultUrl` が指定されている場合、回答履歴・プレイ時間・`result`（`result_success`/`result_score` から組み立てたゲーム結果）をまとめてPhaserWorksへPOST送信します。`resultUrl` が未指定の場合は何も送信されません。
+
+このイベント自体にプロパティはありません。
+
+```ts
+{ event: EventTypeEnum.SendGameResult },
+```
+
+詳細（リクエスト仕様・暗号化・`result`の設定方法など）: [result-submission.md](result-submission.md#phaserworks向け送信)
+
+## SendGameResultWithPowerAutomate / `send_game_result_with_power_automate`（ゲーム結果送信・Power Automate向け）
+
+指定した Power Automate の HTTP Webhook トリガーへ、`userPrincipalName`・成否・スコア・プレイ時間のみをPOST送信します（暗号化なし）。起動URLに `userPrincipalName` が未指定の場合、送信は中断されコンソールにエラーが出力されます。
+
+| プロパティ | 型 | 必須 | 説明 |
+| --- | --- | --- | --- |
+| `url` | string | ○ | 送信先のPower Automate HTTP Webhookトリガーの実行URL |
+
+```ts
+{ event: EventTypeEnum.SendGameResultWithPowerAutomate, url: "https://prod-00.japaneast.logic.azure.com/..." },
+```
+
+詳細（リクエスト仕様・`result`の設定方法など）: [result-submission.md](result-submission.md#power-automate向け送信)
+
+---
+
 ## シナリオ記述の全体例
 
 ```ts
@@ -492,6 +522,8 @@ export const senarioData: Timelines = {
     ],
     ending: [
         { event: EventTypeEnum.ClearSound, key: "bgm01" },
+        // 結果送信先(resultUrl)が設定されていればPhaserWorksへゲーム結果を送信する
+        { event: EventTypeEnum.SendGameResult },
         { event: EventTypeEnum.SceneTransition, key: "ending" },
     ],
 };
