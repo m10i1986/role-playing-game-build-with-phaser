@@ -1,8 +1,17 @@
 # ゲーム結果の送信仕様
 
-ゲーム起動時にURLクエリパラメータで結果送信先を指定すると、ゲーム終了時（エンディング到達時）に回答内容とプレイ時間をサーバへ自動送信します。
+ゲーム結果の送信には2種類の方式があります。シナリオ（Timeline DSL）側でイベントを配置することで、任意のタイミングで明示的に送信をトリガーします。
 
-## 起動URL
+| 方式 | イベント | 送信内容 | 主な宛先 |
+| --- | --- | --- | --- |
+| [PhaserWorks向け送信](#phaserworks向け送信) | `EventTypeEnum.SendGameResult` | 回答履歴・プレイ時間・`result`(成否/スコア)の全データ | 自社サーバー(PhaserWorks) |
+| [Power Automate向け送信](#power-automate向け送信) | `EventTypeEnum.SendGameResultWithPowerAutomate` | `userPrincipalName`・成否・スコア・プレイ時間 | Power AutomateのHTTP Webhookトリガー |
+
+いずれの方式も、シナリオ内でイベントを配置した箇所で即座に送信されます（例: エンディング遷移の直前）。
+
+## PhaserWorks向け送信
+
+### 起動URL
 
 ```
 https://example.com/game/?resultUrl=<結果送信先URL(URLエンコード)>&token=<セッションを識別するトークン>&publicKey=<サーバーの公開鍵(Base64, URLエンコード)>
@@ -26,23 +35,23 @@ https://example.com/game/?resultUrl=https%3A%2F%2Fapi.example.com%2Fgame-results
 http://localhost:5173/?resultUrl=http%3A%2F%2Flocalhost%3A3000%2Fapi%2Fgame-results&token=test-session-001&publicKey=BPqG...
 ```
 
-## 送信タイミング
+### 送信タイミング
 
-シナリオ（Timeline DSL）の `scene_transition` イベントで遷移先キーが `ending`（エンディングシーン）になったタイミングで送信します。
+シナリオ（Timeline DSL）内で `SendGameResult` イベントを配置したタイミングで送信します。
 
 ```ts
-{ event: EventTypeEnum.SceneTransition, key: "ending" }
+{ event: EventTypeEnum.SendGameResult },
 ```
 
 `resultUrl` が指定されていない場合は何も送信されません。
 
-## リクエスト仕様
+### リクエスト仕様
 
 - メソッド: `POST`
 - Content-Type: `application/json`
 - 送信先: 起動時に指定した `resultUrl`
 
-### ボディ（`publicKey` 未指定時・平文）
+#### ボディ（`publicKey` 未指定時・平文）
 
 ```json
 {
@@ -130,11 +139,55 @@ http://localhost:5173/?resultUrl=http%3A%2F%2Flocalhost%3A3000%2Fapi%2Fgame-resu
 
 最終的な回答のみを集計したい場合は、サーバー側で同じ `type`/`key` グループのうち `elapsedMs` が最大のもの（＝最後に記録されたもの）を採用するなど、送信データ側ではなく集計側で絞り込む必要があります。
 
-## 暗号化
+## Power Automate向け送信
+
+Power AutomateのHTTP Webhookトリガーなど、`result`/`score`など最小限の情報のみを受け取る宛先へ直接POSTするための方式です。暗号化は行いません。
+
+### 起動URL
+
+```
+https://example.com/game/?userPrincipalName=<プレイヤーを識別するUPN(URLエンコード)>
+```
+
+| パラメータ | 必須 | 説明 |
+| --- | --- | --- |
+| `userPrincipalName` | ○ | プレイヤーを識別するUser Principal Name(UPN)。未指定の場合、送信は中断されコンソールにエラーが出力される。 |
+
+### 送信タイミング
+
+シナリオ（Timeline DSL）内で `SendGameResultWithPowerAutomate` イベントを配置したタイミングで送信します。`url` には送信先のPower Automate HTTP Webhookトリガーの実行URLを指定します。
+
+```ts
+{ event: EventTypeEnum.SendGameResultWithPowerAutomate, url: "https://prod-00.japaneast.logic.azure.com/..." },
+```
+
+### リクエスト仕様
+
+- メソッド: `POST`
+- Content-Type: `application/json`
+- 送信先: イベントで指定した `url`
+
+```json
+{
+  "userPrincipalName": "user@example.com",
+  "success": true,
+  "score": 100,
+  "playTimeMs": 123456
+}
+```
+
+| フィールド | 型 | 説明 |
+| --- | --- | --- |
+| `userPrincipalName` | `string` | 起動URLで指定した `userPrincipalName`。 |
+| `success` | `boolean` | ゲーム結果の成否。[結果(result)の設定方法](#結果resultの設定方法)を参照。 |
+| `score` | `number \| null` | ゲーム結果のスコア。[結果(result)の設定方法](#結果resultの設定方法)を参照。 |
+| `playTimeMs` | `number` | ゲーム開始（起動時）からイベント実行までの経過時間(ミリ秒)。 |
+
+### 暗号化
 
 `publicKey` パラメータが指定されている場合、送信ボディは **ECIES（ECDH P-256 + AES-256-GCM）** 方式で暗号化されます。ブラウザ標準の WebCrypto API (`crypto.subtle`) のみで実装されており、追加ライブラリは不要です。
 
-### 暗号化の流れ
+#### 暗号化の流れ
 
 1. 起動URLで受け取った `publicKey`（サーバーのECDH公開鍵、raw形式・Base64）を `crypto.subtle.importKey` で読み込む。
 2. 送信のたびに一時的なECDH鍵ペア（Ephemeral Key Pair）を新規生成する。
@@ -144,7 +197,7 @@ http://localhost:5173/?resultUrl=http%3A%2F%2Flocalhost%3A3000%2Fapi%2Fgame-resu
 
 一時鍵ペアは送信のたびに使い捨てるため、サーバー側は都度受け取った `ephemeralPublicKey` と自身の秘密鍵からECDHで同じ共有鍵を導出し、AES-GCMで復号する。
 
-### ボディ（`publicKey` 指定時・暗号化）
+#### ボディ（`publicKey` 指定時・暗号化）
 
 ```json
 {
@@ -164,11 +217,11 @@ http://localhost:5173/?resultUrl=http%3A%2F%2Flocalhost%3A3000%2Fapi%2Fgame-resu
 
 ## 実装箇所
 
-- [src/classes/game_session.ts](../src/classes/game_session.ts) — URLパラメータの読み取り、回答履歴の保持、結果送信処理。`result_success`/`result_score` 変数から `result` を組み立てる処理も含む。
+- [src/classes/game_session.ts](../src/classes/game_session.ts) — URLパラメータの読み取り、回答履歴の保持、結果送信処理(`sendGameResultWithPhaserWorks`/`sendGameResultWithPowerAutomate`)。`result_success`/`result_score` 変数から `result` を組み立てる処理も含む。
 - [src/classes/variable_store.ts](../src/classes/variable_store.ts) — シナリオの `SetVariable` イベントで設定した変数を保持する変数ストア。
-- [src/classes/result_encryption.ts](../src/classes/result_encryption.ts) — `publicKey` を使ったECIES(ECDH + AES-GCM)暗号化処理。
+- [src/classes/result_encryption.ts](../src/classes/result_encryption.ts) — `publicKey` を使ったECIES(ECDH + AES-GCM)暗号化処理。PhaserWorks向け送信でのみ使用。
 - [src/index.ts](../src/index.ts) — 起動時に `initGameSession()` を呼び出し、セッションを初期化。
-- [src/classes/timeline_player.ts](../src/classes/timeline_player.ts) — 選択肢・数値入力のたびに `recordAnswer()` を呼び出して回答を記録し、エンディング遷移時に `sendGameResult()` を呼び出して送信する。
+- [src/classes/timeline_player.ts](../src/classes/timeline_player.ts) — 選択肢・数値入力のたびに `recordAnswer()` を呼び出して回答を記録し、`SendGameResult`/`SendGameResultWithPowerAutomate` イベント実行時にそれぞれの送信関数を呼び出す。
 
 ## 注意事項
 
@@ -176,3 +229,4 @@ http://localhost:5173/?resultUrl=http%3A%2F%2Flocalhost%3A3000%2Fapi%2Fgame-resu
 - `publicKey` が未指定の場合、通信内容は暗号化されません。機密性の高い情報を扱う場合は `publicKey` を指定するか、HTTPS通信を使用し、必要に応じてサーバー側で認可・改ざん検知の仕組みを用意してください。
 - WebCrypto APIはセキュアコンテキスト（HTTPSまたはlocalhost）でのみ利用可能です。HTTP環境（localhost以外）では `crypto.subtle` が利用できず暗号化に失敗するため、その場合は `publicKey` を指定しないでください。
 - `publicKey` はURLクエリパラメータとして平文で渡されるため、URL自体の漏洩（ブラウザ履歴・リファラ・アクセスログ等）には注意してください。公開鍵自体の漏洩は暗号方式の安全性を損ないませんが、鍵の配布経路が信頼できることを別途担保する必要があります（例: HTTPSでの起動URL発行、鍵のローテーション）。
+- Power Automate向け送信は暗号化を行わないため、機密性の高い情報を含めないでください。また `userPrincipalName` はURLクエリパラメータとして平文で渡されるため、PhaserWorks向け送信と同様にURL自体の漏洩に注意してください。

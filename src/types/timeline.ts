@@ -20,7 +20,7 @@ export enum EventTypeEnum {
     GetVariable = "get_variable",
     InputNumber = "input_number",
     SendGameResult = "send_game_result",
-    SendGameResultWebhook = "send_game_result_webhook",
+    SendGameResultWithPowerAutomate = "send_game_result_with_power_automate",
 }
 
 // 変数として扱える値の型
@@ -184,9 +184,9 @@ type SendGameResultEvent = {
     event: EventTypeEnum.SendGameResult;
 };
 
-// ゲーム結果送信イベント(指定URLへresult/scoreのみをPOST送信する。Power Automate Webhook等の宛先を想定)
-type SendGameResultWebhookEvent = {
-    event: EventTypeEnum.SendGameResultWebhook;
+// ゲーム結果送信イベント(指定URLへPower AutomateのHTTP Webhookトリガーが受け取れる形式でPOST送信する)
+type SendGameResultWithPowerAutomateEvent = {
+    event: EventTypeEnum.SendGameResultWithPowerAutomate;
     url: string;
 };
 
@@ -211,5 +211,5 @@ export type Timeline = (
     | ClearVariableEvent
     | InputNumberEvent
     | SendGameResultEvent
-    | SendGameResultWebhookEvent
+    | SendGameResultWithPowerAutomateEvent
 )[];

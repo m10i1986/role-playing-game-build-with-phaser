@@ -1,5 +1,5 @@
 import { type Choice, EventTypeEnum, type MultiChoice, type Timeline } from "../types/timeline";
-import { recordAnswer, sendGameResultWebhook, sendGameResultWithPhaserWorks } from "./game_session";
+import { recordAnswer, sendGameResultWithPhaserWorks, sendGameResultWithPowerAutomate } from "./game_session";
 import type { MessageDialog } from "./message_dialog";
 import { addScore, clearVariable, evaluateCondition, interpolateVariables, setVariable } from "./variable_store";
 
@@ -874,8 +874,8 @@ export class TimelinePlayer {
                 this.next(); // すぐに次のタイムラインを実行する
                 break;
 
-            case EventTypeEnum.SendGameResultWebhook: // ゲーム結果送信イベント(指定URLへresult/scoreのみをPOST送信する)
-                sendGameResultWebhook(timeline_event.url);
+            case EventTypeEnum.SendGameResultWithPowerAutomate: // ゲーム結果送信イベント(指定URLへPower Automate向け形式でPOST送信する)
+                sendGameResultWithPowerAutomate(timeline_event.url);
                 this.next(); // すぐに次のタイムラインを実行する
                 break;
 

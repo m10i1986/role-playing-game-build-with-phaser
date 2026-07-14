@@ -39,16 +39,18 @@ function buildGameResult(): GameResult {
 let resultUrl: string | undefined;
 let resultToken: string | undefined;
 let resultPublicKey: string | undefined;
+let userPrincipalName: string | undefined;
 let started_at: number | undefined;
 
 const answers: AnswerRecord[] = [];
 
-// URLクエリパラメータ(resultUrl, token, publicKey)から結果送信先を読み取り、プレイ開始時刻を記録する
+// URLクエリパラメータ(resultUrl, token, publicKey, userPrincipalName)から結果送信先を読み取り、プレイ開始時刻を記録する
 export function initGameSession(): void {
     const params = new URLSearchParams(window.location.search);
     resultUrl = params.get("resultUrl") ?? undefined;
     resultToken = params.get("token") ?? undefined;
     resultPublicKey = params.get("publicKey") ?? undefined;
+    userPrincipalName = params.get("userPrincipalName") ?? undefined;
     started_at = Date.now();
     answers.length = 0;
 }
@@ -88,15 +90,30 @@ export async function sendGameResultWithPhaserWorks(): Promise<void> {
     }
 }
 
-// 指定URLへ result/score のみをJSONでPOST送信する(Power Automate Webhookなどの宛先を想定。暗号化は行わない)
-export async function sendGameResultWebhook(url: string): Promise<void> {
+// 指定URLへPower AutomateのHTTP Webhookトリガーが受け取れる形式でJSONをPOST送信する(暗号化は行わない)
+// userPrincipalName(起動URLのクエリパラメータ)が未設定の場合は、ユーザーを特定できないため送信を中断する
+export async function sendGameResultWithPowerAutomate(url: string): Promise<void> {
+    if (!userPrincipalName) {
+        console.error("[ERROR] userPrincipalNameが未設定のため、Power Automateへのゲーム結果送信を中断しました");
+        return;
+    }
+
+    const gameResult = buildGameResult();
+
+    const body = {
+        userPrincipalName,
+        success: gameResult.success,
+        score: gameResult.score,
+        playTimeMs: started_at !== undefined ? Date.now() - started_at : 0,
+    };
+
     try {
         await fetch(url, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(buildGameResult()),
+            body: JSON.stringify(body),
         });
     } catch (error) {
-        console.error("[ERROR] ゲーム結果(Webhook)の送信に失敗しました", error);
+        console.error("[ERROR] ゲーム結果(Power Automate)の送信に失敗しました", error);
     }
 }
