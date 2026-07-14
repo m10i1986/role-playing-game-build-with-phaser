@@ -1,5 +1,6 @@
 import type { VariableValue } from "../types/timeline";
 import { encryptResultPayload } from "./result_encryption";
+import { getVariable } from "./variable_store";
 
 // 回答の種類
 export type AnswerRecordType = "choice" | "multi_choice" | "input_number";
@@ -11,6 +12,28 @@ export type AnswerRecord = {
     value: VariableValue | VariableValue[]; // 選択したテキスト・数値・複数選択の配列など
     elapsedMs: number; // ゲーム開始からこの回答までの経過時間(ms)
 };
+
+// ゲーム結果(シナリオ側の変数 result_success/result_score から組み立てる)
+export type GameResult = {
+    result: boolean;
+    score: number | null;
+};
+
+// シナリオ側でSetVariableを使って設定する変数名
+const RESULT_SUCCESS_KEY = "result_success";
+const RESULT_SCORE_KEY = "result_score";
+
+// 変数ストアからresult_success/result_scoreを読み取り、GameResultを組み立てる
+// 未設定の場合は標準値 { result: true, score: null } を返す
+function buildGameResult(): GameResult {
+    const success = getVariable(RESULT_SUCCESS_KEY);
+    const score = getVariable(RESULT_SCORE_KEY);
+
+    return {
+        result: success !== false,
+        score: typeof score === "number" ? score : null,
+    };
+}
 
 // 結果送信先の設定(URLクエリパラメータから取得)
 let resultUrl: string | undefined;
@@ -49,6 +72,7 @@ export async function sendGameResult(): Promise<void> {
         token: resultToken,
         playTimeMs,
         answers,
+        result: buildGameResult(),
     };
 
     try {

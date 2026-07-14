@@ -366,6 +366,15 @@
 
 `scoreKey` を独自の名前にしている場合は、その名前に合わせて `key` を指定してください。
 
+応用: サーバー送信用の結果(result)を設定
+
+エンディング(`key: "ending"`)へ遷移する前に `SetVariable` で `result_success` / `result_score` を設定すると、その内容が `sendGameResult()` 送信時の `result` として送信されます（`result_success` は送信JSON上では `result.result`、`result_score` は `result.score` になります。詳細: [result-submission.md](result-submission.md)）。
+
+```ts
+{ event: EventTypeEnum.SetVariable, key: "result_success", value: true }, // boolean（未設定時はresult.resultがtrue）
+{ event: EventTypeEnum.SetVariable, key: "result_score", value: 100 }, // number（未設定時はresult.scoreがnull）
+```
+
 ## ClearVariable / `clear_variable`（変数削除）
 
 変数ストアから変数を削除します。削除後は `notExists` 条件が真になり、`{{変数名}}` は空文字に置換されます。

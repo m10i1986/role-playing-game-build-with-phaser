@@ -197,6 +197,9 @@ export const senarioData: Timelines = {
             actorFillColor: "#0000ff",
             actorFillAlpha: 0.5,
         },
+        // サーバー送信用の結果を設定する(成功時のサンプル。result_scoreは固定値の例として100を設定)
+        { event: EventTypeEnum.SetVariable, key: "result_success", value: true },
+        { event: EventTypeEnum.SetVariable, key: "result_score", value: 100 },
         {
             event: EventTypeEnum.Choice,
             choices: [
@@ -215,6 +218,8 @@ export const senarioData: Timelines = {
             actorFillColor: "#0000ff",
             actorFillAlpha: 0.5,
         },
+        // サーバー送信用の結果を設定する(失敗扱いにするサンプル。result_scoreは未設定=scoreがnullのまま)
+        { event: EventTypeEnum.SetVariable, key: "result_success", value: false },
         {
             event: EventTypeEnum.Choice,
             choices: [

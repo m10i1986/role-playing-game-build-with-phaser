@@ -67,7 +67,11 @@ http://localhost:5173/?resultUrl=http%3A%2F%2Flocalhost%3A3000%2Fapi%2Fgame-resu
       "value": 2,
       "elapsedMs": 42000
     }
-  ]
+  ],
+  "result": {
+    "result": true,
+    "score": 100
+  }
 }
 ```
 
@@ -76,6 +80,31 @@ http://localhost:5173/?resultUrl=http%3A%2F%2Flocalhost%3A3000%2Fapi%2Fgame-resu
 | `token` | `string \| undefined` | 起動URLで指定した `token`。未指定の場合は `undefined`（JSON上は省略）。 |
 | `playTimeMs` | `number` | ゲーム開始（起動時）からエンディング到達までの経過時間(ミリ秒)。 |
 | `answers` | `AnswerRecord[]` | プレイ中に発生した回答の時系列履歴。 |
+| `result` | `{ result: boolean; score: number \| null }` | シナリオ側で計算されたゲーム結果。[結果(result)の設定方法](#結果resultの設定方法)を参照。 |
+
+### 結果(result)の設定方法
+
+`result` はシナリオ（Timeline DSL）側で `SetVariable` イベントを使って計算・設定します。エンディングへ遷移する前に、以下の変数へ値を設定してください。
+
+| 変数名 | 型 | 説明 |
+| --- | --- | --- |
+| `result_success` | `boolean` | ゲーム結果の成否。送信JSONでは `result.result` になります。`false` 以外の値・未設定の場合は `true` として送信されます。 |
+| `result_score` | `number` | ゲーム結果のスコア。送信JSONでは `result.score` になります。数値以外・未設定の場合は `null` として送信されます。 |
+
+```ts
+// 成功例: シナリオ側で正誤判定や合計スコアをもとに result_success/result_score を設定する
+{ event: EventTypeEnum.SetVariable, key: "result_success", value: true },
+{ event: EventTypeEnum.SetVariable, key: "result_score", value: 100 },
+
+// 失敗例: result_scoreを設定しない場合、送信されるresult.scoreはnullになる
+{ event: EventTypeEnum.SetVariable, key: "result_success", value: false },
+```
+
+どちらの変数も設定しない場合、標準値として次の内容が送信されます。
+
+```json
+"result": { "result": true, "score": null }
+```
 
 ### `answers[]`（回答履歴）
 
@@ -135,7 +164,8 @@ http://localhost:5173/?resultUrl=http%3A%2F%2Flocalhost%3A3000%2Fapi%2Fgame-resu
 
 ## 実装箇所
 
-- [src/classes/game_session.ts](../src/classes/game_session.ts) — URLパラメータの読み取り、回答履歴の保持、結果送信処理。
+- [src/classes/game_session.ts](../src/classes/game_session.ts) — URLパラメータの読み取り、回答履歴の保持、結果送信処理。`result_success`/`result_score` 変数から `result` を組み立てる処理も含む。
+- [src/classes/variable_store.ts](../src/classes/variable_store.ts) — シナリオの `SetVariable` イベントで設定した変数を保持する変数ストア。
 - [src/classes/result_encryption.ts](../src/classes/result_encryption.ts) — `publicKey` を使ったECIES(ECDH + AES-GCM)暗号化処理。
 - [src/index.ts](../src/index.ts) — 起動時に `initGameSession()` を呼び出し、セッションを初期化。
 - [src/classes/timeline_player.ts](../src/classes/timeline_player.ts) — 選択肢・数値入力のたびに `recordAnswer()` を呼び出して回答を記録し、エンディング遷移時に `sendGameResult()` を呼び出して送信する。
