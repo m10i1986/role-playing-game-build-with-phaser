@@ -228,5 +228,11 @@ export const senarioData: Timelines = {
             ],
         },
     ],
-    ending: [{ event: EventTypeEnum.SceneTransition, key: "ending" }],
+    ending: [
+        // 結果送信先が設定されていればPhaserWorksへゲーム結果(回答履歴・プレイ時間・result/score)を送信する
+        { event: EventTypeEnum.SendGameResult },
+        // Power Automate Webhookなど、result/scoreのみを受け取る宛先へ直接POSTする場合の例
+        // { event: EventTypeEnum.SendGameResultWebhook, url: "https://example.com/webhook" },
+        { event: EventTypeEnum.SceneTransition, key: "ending" },
+    ],
 };

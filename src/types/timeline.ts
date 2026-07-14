@@ -19,6 +19,8 @@ export enum EventTypeEnum {
     ClearVariable = "clear_variable",
     GetVariable = "get_variable",
     InputNumber = "input_number",
+    SendGameResult = "send_game_result",
+    SendGameResultWebhook = "send_game_result_webhook",
 }
 
 // 変数として扱える値の型
@@ -177,6 +179,17 @@ type InputNumberEvent = {
     step?: number; // +/-ボタン1回あたりの増減量(デフォルト1)
 };
 
+// ゲーム結果送信イベント(結果送信先が設定されていればPhaserWorksへ全データを送信する)
+type SendGameResultEvent = {
+    event: EventTypeEnum.SendGameResult;
+};
+
+// ゲーム結果送信イベント(指定URLへresult/scoreのみをPOST送信する。Power Automate Webhook等の宛先を想定)
+type SendGameResultWebhookEvent = {
+    event: EventTypeEnum.SendGameResultWebhook;
+    url: string;
+};
+
 // Timelineはイベントの配列
 export type Timeline = (
     | SetDialogEvent
@@ -197,4 +210,6 @@ export type Timeline = (
     | SetVariableEvent
     | ClearVariableEvent
     | InputNumberEvent
+    | SendGameResultEvent
+    | SendGameResultWebhookEvent
 )[];

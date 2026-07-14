@@ -1,5 +1,5 @@
 import { type Choice, EventTypeEnum, type MultiChoice, type Timeline } from "../types/timeline";
-import { recordAnswer, sendGameResult } from "./game_session";
+import { recordAnswer, sendGameResultWebhook, sendGameResultWithPhaserWorks } from "./game_session";
 import type { MessageDialog } from "./message_dialog";
 import { addScore, clearVariable, evaluateCondition, interpolateVariables, setVariable } from "./variable_store";
 
@@ -808,10 +808,6 @@ export class TimelinePlayer {
                 break;
 
             case EventTypeEnum.SceneTransition: // シーン遷移イベント
-                if (timeline_event.key === "ending") {
-                    // エンディングへの遷移時に結果送信先が設定されていればゲーム結果を送信する
-                    sendGameResult();
-                }
                 // 指定のシーンに遷移する
                 // start()の第2引数がシーンのinit()の引数に渡される
                 this.scene.scene.start(timeline_event.key, timeline_event.data);
@@ -871,6 +867,16 @@ export class TimelinePlayer {
                     timeline_event.defaultValue,
                     timeline_event.step ?? 1,
                 );
+                break;
+
+            case EventTypeEnum.SendGameResult: // ゲーム結果送信イベント(結果送信先が設定されていればPhaserWorksへ全データを送信する)
+                sendGameResultWithPhaserWorks();
+                this.next(); // すぐに次のタイムラインを実行する
+                break;
+
+            case EventTypeEnum.SendGameResultWebhook: // ゲーム結果送信イベント(指定URLへresult/scoreのみをPOST送信する)
+                sendGameResultWebhook(timeline_event.url);
+                this.next(); // すぐに次のタイムラインを実行する
                 break;
 
             default:

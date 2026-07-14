@@ -59,9 +59,9 @@ export function recordAnswer(type: AnswerRecordType, key: string, value: Variabl
     answers.push({ type, key, value, elapsedMs });
 }
 
-// 結果送信先が設定されている場合、回答履歴・プレイ時間をJSONでPOST送信する
+// 結果送信先が設定されている場合、回答履歴・プレイ時間をJSONでPhaserWorksへPOST送信する
 // publicKeyが指定されている場合はECIES(ECDH + AES-GCM)で本文を暗号化してから送信する
-export async function sendGameResult(): Promise<void> {
+export async function sendGameResultWithPhaserWorks(): Promise<void> {
     if (!resultUrl) {
         return;
     }
@@ -85,5 +85,18 @@ export async function sendGameResult(): Promise<void> {
         });
     } catch (error) {
         console.error("[ERROR] ゲーム結果の送信に失敗しました", error);
+    }
+}
+
+// 指定URLへ result/score のみをJSONでPOST送信する(Power Automate Webhookなどの宛先を想定。暗号化は行わない)
+export async function sendGameResultWebhook(url: string): Promise<void> {
+    try {
+        await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(buildGameResult()),
+        });
+    } catch (error) {
+        console.error("[ERROR] ゲーム結果(Webhook)の送信に失敗しました", error);
     }
 }
