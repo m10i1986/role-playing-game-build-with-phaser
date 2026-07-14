@@ -69,7 +69,7 @@ http://localhost:5173/?resultUrl=http%3A%2F%2Flocalhost%3A3000%2Fapi%2Fgame-resu
     }
   ],
   "result": {
-    "result": true,
+    "success": true,
     "score": 100
   }
 }
@@ -80,7 +80,7 @@ http://localhost:5173/?resultUrl=http%3A%2F%2Flocalhost%3A3000%2Fapi%2Fgame-resu
 | `token` | `string \| undefined` | 起動URLで指定した `token`。未指定の場合は `undefined`（JSON上は省略）。 |
 | `playTimeMs` | `number` | ゲーム開始（起動時）からエンディング到達までの経過時間(ミリ秒)。 |
 | `answers` | `AnswerRecord[]` | プレイ中に発生した回答の時系列履歴。 |
-| `result` | `{ result: boolean; score: number \| null }` | シナリオ側で計算されたゲーム結果。[結果(result)の設定方法](#結果resultの設定方法)を参照。 |
+| `result` | `{ success: boolean; score: number \| null }` | シナリオ側で計算されたゲーム結果。[結果(result)の設定方法](#結果resultの設定方法)を参照。 |
 
 ### 結果(result)の設定方法
 
@@ -88,7 +88,7 @@ http://localhost:5173/?resultUrl=http%3A%2F%2Flocalhost%3A3000%2Fapi%2Fgame-resu
 
 | 変数名 | 型 | 説明 |
 | --- | --- | --- |
-| `result_success` | `boolean` | ゲーム結果の成否。送信JSONでは `result.result` になります。`false` 以外の値・未設定の場合は `true` として送信されます。 |
+| `result_success` | `boolean` | ゲーム結果の成否。送信JSONでは `result.success` になります。`false` 以外の値・未設定の場合は `true` として送信されます。 |
 | `result_score` | `number` | ゲーム結果のスコア。送信JSONでは `result.score` になります。数値以外・未設定の場合は `null` として送信されます。 |
 
 ```ts
@@ -103,7 +103,7 @@ http://localhost:5173/?resultUrl=http%3A%2F%2Flocalhost%3A3000%2Fapi%2Fgame-resu
 どちらの変数も設定しない場合、標準値として次の内容が送信されます。
 
 ```json
-"result": { "result": true, "score": null }
+"result": { "success": true, "score": null }
 ```
 
 ### `answers[]`（回答履歴）

@@ -15,7 +15,7 @@ export type AnswerRecord = {
 
 // ゲーム結果(シナリオ側の変数 result_success/result_score から組み立てる)
 export type GameResult = {
-    result: boolean;
+    success: boolean;
     score: number | null;
 };
 
@@ -24,13 +24,13 @@ const RESULT_SUCCESS_KEY = "result_success";
 const RESULT_SCORE_KEY = "result_score";
 
 // 変数ストアからresult_success/result_scoreを読み取り、GameResultを組み立てる
-// 未設定の場合は標準値 { result: true, score: null } を返す
+// 未設定の場合は標準値 { success: true, score: null } を返す
 function buildGameResult(): GameResult {
     const success = getVariable(RESULT_SUCCESS_KEY);
     const score = getVariable(RESULT_SCORE_KEY);
 
     return {
-        result: success !== false,
+        success: success !== false,
         score: typeof score === "number" ? score : null,
     };
 }
