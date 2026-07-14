@@ -44,6 +44,24 @@ let started_at: number | undefined;
 
 const answers: AnswerRecord[] = [];
 
+// ゲーム開始からの経過時間(ms)を返す(未開始の場合は0)
+function elapsedSinceStart(): number {
+    return started_at !== undefined ? Date.now() - started_at : 0;
+}
+
+// 指定URLへJSONをPOST送信する(失敗時はコンソールにエラーを出力するのみでリトライは行わない)
+async function postResult(url: string, body: unknown, errorMessage: string): Promise<void> {
+    try {
+        await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+        });
+    } catch (error) {
+        console.error(errorMessage, error);
+    }
+}
+
 // URLクエリパラメータ(resultUrl, token, publicKey, userPrincipalName)から結果送信先を読み取り、プレイ開始時刻を記録する
 export function initGameSession(): void {
     const params = new URLSearchParams(window.location.search);
@@ -57,8 +75,7 @@ export function initGameSession(): void {
 
 // 回答を時系列履歴に追加する
 export function recordAnswer(type: AnswerRecordType, key: string, value: VariableValue | VariableValue[]): void {
-    const elapsedMs = started_at !== undefined ? Date.now() - started_at : 0;
-    answers.push({ type, key, value, elapsedMs });
+    answers.push({ type, key, value, elapsedMs: elapsedSinceStart() });
 }
 
 // 結果送信先が設定されている場合、回答履歴・プレイ時間をJSONでPhaserWorksへPOST送信する
@@ -68,23 +85,17 @@ export async function sendGameResultWithPhaserWorks(): Promise<void> {
         return;
     }
 
-    const playTimeMs = started_at !== undefined ? Date.now() - started_at : 0;
-
     const body = {
         token: resultToken,
-        playTimeMs,
+        playTimeMs: elapsedSinceStart(),
         answers,
         result: buildGameResult(),
     };
 
+    // encryptResultPayload()の失敗もpostResult()と同じメッセージで捕捉する(postResult自体はfetch失敗を内部で捕捉済み)
     try {
         const requestBody = resultPublicKey ? await encryptResultPayload(body, resultPublicKey) : body;
-
-        await fetch(resultUrl, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(requestBody),
-        });
+        await postResult(resultUrl, requestBody, "[ERROR] ゲーム結果の送信に失敗しました");
     } catch (error) {
         console.error("[ERROR] ゲーム結果の送信に失敗しました", error);
     }
@@ -104,16 +115,8 @@ export async function sendGameResultWithPowerAutomate(url: string): Promise<void
         userPrincipalName,
         success: gameResult.success,
         score: gameResult.score,
-        playTimeMs: started_at !== undefined ? Date.now() - started_at : 0,
+        playTimeMs: elapsedSinceStart(),
     };
 
-    try {
-        await fetch(url, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(body),
-        });
-    } catch (error) {
-        console.error("[ERROR] ゲーム結果(Power Automate)の送信に失敗しました", error);
-    }
+    await postResult(url, body, "[ERROR] ゲーム結果(Power Automate)の送信に失敗しました");
 }

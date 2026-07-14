@@ -153,6 +153,37 @@ export class TimelinePlayer {
         this.foreground_layer.removeAll(true);
     }
 
+    // 矩形ボタンを作成し、UIレイヤーに追加してhoverで色が切り替わるようにする(戻り値のボタンにpointerdownハンドラを別途登録する)
+    private createHoverButton(
+        x: number,
+        y: number,
+        width: number,
+        height: number,
+        fillColor: number,
+        hoverColor: number,
+    ): Phaser.GameObjects.Rectangle {
+        const button = new Phaser.GameObjects.Rectangle(this.scene, x, y, width, height, fillColor).setStrokeStyle(
+            1,
+            0xffffff,
+        );
+        button.setInteractive({ useHandCursor: true });
+        button.on("pointerover", () => {
+            button.setFillStyle(hoverColor);
+        });
+        button.on("pointerout", () => {
+            button.setFillStyle(fillColor);
+        });
+        this.ui_layer.add(button);
+        return button;
+    }
+
+    // ボタン中央に配置するラベルテキストを作成し、UIレイヤーに追加する
+    private createButtonLabel(x: number, y: number, text: string): Phaser.GameObjects.Text {
+        const label = new Phaser.GameObjects.Text(this.scene, x, y, text, this.text_style).setOrigin(0.5);
+        this.ui_layer.add(label);
+        return label;
+    }
+
     // 選択肢ボタンをセット
     private setChoiceButtons(choices: Choice[], scoreKey: string = "score") {
         // 表示条件を満たす選択肢のみに絞り込む
@@ -174,26 +205,14 @@ export class TimelinePlayer {
         visible_choices.forEach((choice, index) => {
             const y = button_group_origin_y + button_height * (index + 0.5) + button_margin * index;
 
-            // Rectangleでボタンを作成
-            const button = new Phaser.GameObjects.Rectangle(
-                this.scene,
+            const button = this.createHoverButton(
                 width / 2,
                 y,
                 width - button_margin * 2,
                 button_height,
                 0x000000,
-            ).setStrokeStyle(1, 0xffffff);
-            button.setInteractive({
-                useHandCursor: true,
-            });
-
-            // マウスオーバーで色が変わるように設定
-            button.on("pointerover", () => {
-                button.setFillStyle(0x333333);
-            });
-            button.on("pointerout", () => {
-                button.setFillStyle(0x000000);
-            });
+                0x333333,
+            );
 
             // ボタンクリックでシーンをリスタートし、指定のタイムラインを実行する
             button.on("pointerdown", () => {
@@ -207,20 +226,7 @@ export class TimelinePlayer {
                 this.scene.scene.restart({ id: choice.key });
             });
 
-            // ボタンをUIレイヤーに追加
-            this.ui_layer.add(button);
-
-            // ボタンテキストを作成
-            const button_text = new Phaser.GameObjects.Text(
-                this.scene,
-                width / 2,
-                y,
-                choice.text,
-                this.text_style,
-            ).setOrigin(0.5);
-
-            // ボタンテキストをUIレイヤーに追加
-            this.ui_layer.add(button_text);
+            this.createButtonLabel(width / 2, y, choice.text);
         });
     }
 
@@ -271,22 +277,15 @@ export class TimelinePlayer {
             const choice = visible_choices[origIndex];
             const y = button_group_origin_y + button_height * (displayIndex + 0.5) + button_margin * displayIndex;
 
-            const button = new Phaser.GameObjects.Rectangle(
-                this.scene,
+            // 選択済みかどうかでpointerout時の色が変わるため、hoverColorはpointerout側で都度setFillStyleし直す
+            const button = this.createHoverButton(
                 width / 2,
                 y,
                 width - button_margin * 2,
                 button_height,
                 0x000000,
-            ).setStrokeStyle(1, 0xffffff);
-            button.setInteractive({ useHandCursor: true });
-
-            // 初期色
-            button.setFillStyle(0x000000);
-
-            button.on("pointerover", () => {
-                button.setFillStyle(0x222222);
-            });
+                0x222222,
+            );
             button.on("pointerout", () => {
                 // 選択済みなら強い色、未選択なら黒
                 button.setFillStyle(selected.has(origIndex) ? 0x663333 : 0x000000);
@@ -308,44 +307,13 @@ export class TimelinePlayer {
                 }
             });
 
-            this.ui_layer.add(button);
-
-            const button_text = new Phaser.GameObjects.Text(
-                this.scene,
-                width / 2,
-                y,
-                choice.text,
-                this.text_style,
-            ).setOrigin(0.5);
-            this.ui_layer.add(button_text);
+            this.createButtonLabel(width / 2, y, choice.text);
         });
 
         // 下部に「選択完了」ボタンを追加
         const finishY = Math.max(60, height - dialogReserve - 40);
-        const finishButton = new Phaser.GameObjects.Rectangle(
-            this.scene,
-            width / 2,
-            finishY,
-            240,
-            40,
-            0x000000,
-        ).setStrokeStyle(1, 0xffffff);
-        finishButton.setInteractive({ useHandCursor: true });
-
-        finishButton.on("pointerover", () => {
-            finishButton.setFillStyle(0x222222);
-        });
-        finishButton.on("pointerout", () => {
-            finishButton.setFillStyle(0x000000);
-        });
-
-        const finishText = new Phaser.GameObjects.Text(
-            this.scene,
-            width / 2,
-            finishY,
-            "選択完了(採点する)",
-            this.text_style,
-        ).setOrigin(0.5);
+        const finishButton = this.createHoverButton(width / 2, finishY, 240, 40, 0x000000, 0x222222);
+        this.createButtonLabel(width / 2, finishY, "選択完了(採点する)");
 
         finishButton.on("pointerdown", () => {
             // 最低選択数チェック
@@ -390,9 +358,6 @@ export class TimelinePlayer {
                 this.hit_area.setInteractive({ useHandCursor: true });
             }
         });
-
-        this.ui_layer.add(finishButton);
-        this.ui_layer.add(finishText);
     }
 
     // 数値入力UIをセット
@@ -422,46 +387,28 @@ export class TimelinePlayer {
         const gap = 20;
 
         // マイナスボタン
-        const minusButton = new Phaser.GameObjects.Rectangle(
-            this.scene,
+        const minusButton = this.createHoverButton(
             width / 2 - valueBoxWidth / 2 - gap - buttonSize / 2,
             centerY,
             buttonSize,
             buttonSize,
             0x000000,
-        ).setStrokeStyle(1, 0xffffff);
-        minusButton.setInteractive({ useHandCursor: true });
-        this.ui_layer.add(minusButton);
+            0x333333,
+        );
         created.push(minusButton);
-
-        const minusText = new Phaser.GameObjects.Text(
-            this.scene,
-            minusButton.x,
-            centerY,
-            "-",
-            this.text_style,
-        ).setOrigin(0.5);
-        this.ui_layer.add(minusText);
-        created.push(minusText);
+        created.push(this.createButtonLabel(minusButton.x, centerY, "-"));
 
         // プラスボタン
-        const plusButton = new Phaser.GameObjects.Rectangle(
-            this.scene,
+        const plusButton = this.createHoverButton(
             width / 2 + valueBoxWidth / 2 + gap + buttonSize / 2,
             centerY,
             buttonSize,
             buttonSize,
             0x000000,
-        ).setStrokeStyle(1, 0xffffff);
-        plusButton.setInteractive({ useHandCursor: true });
-        this.ui_layer.add(plusButton);
-        created.push(plusButton);
-
-        const plusText = new Phaser.GameObjects.Text(this.scene, plusButton.x, centerY, "+", this.text_style).setOrigin(
-            0.5,
+            0x333333,
         );
-        this.ui_layer.add(plusText);
-        created.push(plusText);
+        created.push(plusButton);
+        created.push(this.createButtonLabel(plusButton.x, centerY, "+"));
 
         // 値表示ボックス
         const valueBox = new Phaser.GameObjects.Rectangle(
@@ -475,39 +422,14 @@ export class TimelinePlayer {
         this.ui_layer.add(valueBox);
         created.push(valueBox);
 
-        const valueText = new Phaser.GameObjects.Text(
-            this.scene,
-            width / 2,
-            centerY,
-            inputText,
-            this.text_style,
-        ).setOrigin(0.5);
-        this.ui_layer.add(valueText);
+        const valueText = this.createButtonLabel(width / 2, centerY, inputText);
         created.push(valueText);
 
         // 決定ボタン
         const decideY = centerY + buttonSize + 40;
-        const decideButton = new Phaser.GameObjects.Rectangle(
-            this.scene,
-            width / 2,
-            decideY,
-            160,
-            40,
-            0x000000,
-        ).setStrokeStyle(1, 0xffffff);
-        decideButton.setInteractive({ useHandCursor: true });
-        this.ui_layer.add(decideButton);
+        const decideButton = this.createHoverButton(width / 2, decideY, 160, 40, 0x000000, 0x333333);
         created.push(decideButton);
-
-        const decideText = new Phaser.GameObjects.Text(
-            this.scene,
-            width / 2,
-            decideY,
-            "決定",
-            this.text_style,
-        ).setOrigin(0.5);
-        this.ui_layer.add(decideText);
-        created.push(decideText);
+        created.push(this.createButtonLabel(width / 2, decideY, "決定"));
 
         // -/+ボタンがmin/maxに達しているかを視覚的に反映
         const refreshButtonState = () => {
@@ -518,13 +440,6 @@ export class TimelinePlayer {
             plusButton.setAlpha(atMax ? 0.4 : 1);
         };
         refreshButtonState();
-
-        minusButton.on("pointerover", () => minusButton.setFillStyle(0x333333));
-        minusButton.on("pointerout", () => minusButton.setFillStyle(0x000000));
-        plusButton.on("pointerover", () => plusButton.setFillStyle(0x333333));
-        plusButton.on("pointerout", () => plusButton.setFillStyle(0x000000));
-        decideButton.on("pointerover", () => decideButton.setFillStyle(0x333333));
-        decideButton.on("pointerout", () => decideButton.setFillStyle(0x000000));
 
         minusButton.on("pointerdown", () => {
             let current = Number(inputText);
