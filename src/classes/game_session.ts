@@ -1,6 +1,6 @@
 import type { VariableValue } from "../types/timeline";
 import { encryptResultPayload } from "./result_encryption";
-import { getVariable } from "./variable_store";
+import { getVariable, getVariableList } from "./variable_store";
 
 // 回答の種類
 export type AnswerRecordType = "choice" | "multi_choice" | "sort_order" | "input_number";
@@ -101,9 +101,25 @@ export async function sendGameResultWithPhaserWorks(): Promise<void> {
     }
 }
 
+// 指定されたkey一覧を変数ストアから読み取り、key→値のマップを組み立てる
+// number変数として見つかればその数値、見つからない場合はlist変数として調べその配列、どちらにも該当しなければnullを格納する
+function collectVariables(keys: string[]): Record<string, number | VariableValue[] | null> {
+    return Object.fromEntries(
+        keys.map((key) => {
+            const value = getVariable(key);
+            if (typeof value === "number") {
+                return [key, value];
+            }
+            const list = getVariableList(key);
+            return [key, list ?? null];
+        }),
+    );
+}
+
 // 指定URLへPower AutomateのHTTP Webhookトリガーが受け取れる形式でJSONをPOST送信する(暗号化は行わない)
 // preferredUsername(起動URLのクエリパラメータ)が未設定の場合は、ユーザーを特定できないため送信を中断する
-export async function sendGameResultWithPowerAutomate(url: string): Promise<void> {
+// variablesを指定すると、そのkeyに対応するnumber変数・list変数の値を送信データに追加できる
+export async function sendGameResultWithPowerAutomate(url: string, variables?: string[]): Promise<void> {
     if (!preferredUsername) {
         console.error("[ERROR] preferredUsernameが未設定のため、Power Automateへのゲーム結果送信を中断しました");
         return;
@@ -116,6 +132,7 @@ export async function sendGameResultWithPowerAutomate(url: string): Promise<void
         success: gameResult.success,
         score: gameResult.score,
         playTimeMs: elapsedSinceStart(),
+        ...(variables ? { variables: collectVariables(variables) } : {}),
     };
 
     await postResult(url, body, "[ERROR] ゲーム結果(Power Automate)の送信に失敗しました");

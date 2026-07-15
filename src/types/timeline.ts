@@ -256,6 +256,7 @@ type SendGameResultWithPhaserWorksEvent = {
 type SendGameResultWithPowerAutomateEvent = {
     event: EventTypeEnum.SendGameResultWithPowerAutomate;
     url: string;
+    variables?: string[]; // 追加で送信したい変数のkey一覧(number変数・list変数どちらのkeyも指定可能)
 };
 
 // Timelineはイベントの配列

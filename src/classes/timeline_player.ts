@@ -1013,7 +1013,7 @@ export class TimelinePlayer {
                 break;
 
             case EventTypeEnum.SendGameResultWithPowerAutomate: // ゲーム結果送信イベント(指定URLへPower Automate向け形式でPOST送信する)
-                sendGameResultWithPowerAutomate(timeline_event.url);
+                sendGameResultWithPowerAutomate(timeline_event.url, timeline_event.variables);
                 this.next(); // すぐに次のタイムラインを実行する
                 break;
 
