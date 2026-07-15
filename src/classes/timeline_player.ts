@@ -360,6 +360,22 @@ export class TimelinePlayer {
         });
     }
 
+    // 並び替えボタンの左側に表示する順序ラベル文字列を生成する("number"なら1始まり、"alphabet"なら A,B,...,Z,AA,AB,... )
+    private formatSortOrderLabel(slotIndex: number, labelStyle: "number" | "alphabet"): string {
+        if (labelStyle === "number") {
+            return String(slotIndex + 1);
+        }
+
+        // アルファベット(26進数風)に変換する。26個を超えたらAA, AB, ...と桁上がりする
+        let n = slotIndex;
+        let label = "";
+        do {
+            label = String.fromCharCode(65 + (n % 26)) + label;
+            n = Math.floor(n / 26) - 1;
+        } while (n >= 0);
+        return label;
+    }
+
     // 並び替えUIをセット(ドラッグ&ドロップで選択肢の順序を入れ替えさせ、正しい順序かどうかを判定する)
     private setSortOrderButtons(
         items: SortOrderItem[],
@@ -367,6 +383,7 @@ export class TimelinePlayer {
         incorrectKey: string,
         shuffle: boolean = true,
         scoreKey: string = "score",
+        labelStyle: "number" | "alphabet" = "number",
     ) {
         if (items.length === 0) {
             return;
@@ -381,6 +398,22 @@ export class TimelinePlayer {
         const button_group_origin_y = Math.max(20, height / 2 - button_group_height / 2 - dialogReserve);
         const slotY = (slotIndex: number) =>
             button_group_origin_y + button_height * (slotIndex + 0.5) + button_margin * slotIndex;
+
+        // 順序ラベル(左側に固定表示する番号/アルファベット)の分だけボタン本体の横幅と中心Xをずらす
+        const order_label_width = 44;
+        const order_label_x = order_label_width / 2 + button_margin;
+        const button_center_x = width / 2 + order_label_width / 2;
+        const button_width = width - button_margin * 2 - order_label_width;
+
+        // スロット位置(表示上の順番)を示すラベルは並び替えても位置が動かないようスロットに固定表示する
+        items.forEach((_, slotIndex) => {
+            const label = this.createButtonLabel(
+                order_label_x,
+                slotY(slotIndex),
+                this.formatSortOrderLabel(slotIndex, labelStyle),
+            );
+            label.setFontStyle("bold");
+        });
 
         // 初期の表示順序を作成(shuffleの場合はFisher-Yatesで並び替え、正解順のまま出さないようにする)
         const order = items.map((_, i) => i); // orderIndex(表示スロット) -> items配列上のインデックス
@@ -402,14 +435,14 @@ export class TimelinePlayer {
         // order[slotIndex]のitemIndexに対応するSortButtonをslotIndexの位置へ配置する
         const buttons: SortButton[] = order.map((itemIndex) => {
             const button = this.createHoverButton(
-                width / 2,
+                button_center_x,
                 0, // 位置は直後のlayout()で設定する
-                width - button_margin * 2,
+                button_width,
                 button_height,
                 0x000000,
                 0x333333,
             );
-            const label = this.createButtonLabel(width / 2, 0, items[itemIndex].text);
+            const label = this.createButtonLabel(button_center_x, 0, items[itemIndex].text);
             return { itemIndex, button, label };
         });
 
@@ -444,8 +477,7 @@ export class TimelinePlayer {
 
             sortButton.button.on("drag", (_pointer: Phaser.Input.Pointer, _dragX: number, dragY: number) => {
                 sortButton.button.y = dragY;
-                sortButton.label.setPosition(sortButton.button.x, dragY);
-                sortButton.label.x = width / 2;
+                sortButton.label.setPosition(button_center_x, dragY);
 
                 // ドラッグ中のY座標から現在配置すべきスロットを求め、orderを組み替える
                 const fromSlot = order.indexOf(sortButton.itemIndex);
@@ -880,6 +912,7 @@ export class TimelinePlayer {
                     timeline_event.incorrectKey,
                     timeline_event.shuffle,
                     timeline_event.scoreKey ?? "score",
+                    timeline_event.labelStyle ?? "number",
                 );
                 break;
 

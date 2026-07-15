@@ -165,6 +165,7 @@ export const senarioData: Timelines = {
                 { text: "加熱する" },
                 { text: "盛り付ける" },
             ],
+            labelStyle: "alphabet",
             correctKey: "sort_order_correct",
             incorrectKey: "sort_order_incorrect",
             scoreKey: "score",

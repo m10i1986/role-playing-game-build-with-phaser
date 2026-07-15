@@ -142,6 +142,7 @@ type SortOrderEvent = {
     incorrectKey: string; // 不正解時のキー
     shuffle?: boolean; // 初期表示順をシャッフルするかどうか(デフォルトはtrue)
     scoreKey?: string; // 採点結果を加算する変数名(未設定時は"score")
+    labelStyle?: "number" | "alphabet"; // 各ボタン左側に表示する順序ラベルの形式(未設定時は"number")
 };
 export type SortOrderItem = {
     text: string;
