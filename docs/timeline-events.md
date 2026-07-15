@@ -80,6 +80,7 @@
 | `InputNumber` | `input_number` | 数値入力UIを表示 | 入力待ち |
 | `SendGameResultWithPhaserWorks` | `send_game_result_with_phaser_works` | ゲーム結果をPhaserWorksへ送信 | 即時 |
 | `SendGameResultWithPowerAutomate` | `send_game_result_with_power_automate` | ゲーム結果をPower Automateへ送信 | 即時 |
+| `CheckPreferredUsername` | `check_preferred_username` | 起動URLの`preferredUsername`を判定 | 判定OK: 即時 / 判定NG: 停止 |
 
 ---
 
@@ -620,6 +621,23 @@
 ```
 
 詳細（リクエスト仕様・`result`の設定方法など）: [result-submission.md](result-submission.md#power-automate向け送信)
+
+## CheckPreferredUsername / `check_preferred_username`（preferredUsername判定）
+
+起動URLのクエリパラメータに `preferredUsername` が正しく渡されているかを判定します。判定OKの場合はそのまま次のイベントへ進みます。判定NGの場合は `ngText` をダイアログに表示し、タイムラインの進行を停止します（クリック待ちにはならず、以降のイベントは実行されません）。
+
+| プロパティ | 型 | 必須 | 説明 |
+| --- | --- | --- | --- |
+| `ngText` | string | ○ | 判定NG時に表示するダイアログテキスト |
+| `ngActorName` | string | 任意 | 判定NG時に表示する話者名（未設定時は非表示） |
+
+```ts
+{ event: EventTypeEnum.CheckPreferredUsername, ngText: "ユーザー情報を確認できませんでした。お手数ですが最初のリンクからやり直してください。" },
+```
+
+注意点:
+
+- 判定NG時はタイムラインが完全に停止するため、シナリオの先頭付近など、以降のイベント（`SceneTransition`によるタイトル遷移など）を前提にしない位置に配置してください。
 
 ---
 

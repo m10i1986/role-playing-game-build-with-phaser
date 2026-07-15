@@ -1,6 +1,11 @@
 import * as Phaser from "phaser";
 import { type Choice, EventTypeEnum, type MultiChoice, type SortOrderItem, type Timeline } from "../types/timeline";
-import { recordAnswer, sendGameResultWithPhaserWorks, sendGameResultWithPowerAutomate } from "./game_session";
+import {
+    hasPreferredUsername,
+    recordAnswer,
+    sendGameResultWithPhaserWorks,
+    sendGameResultWithPowerAutomate,
+} from "./game_session";
 import type { MessageDialog } from "./message_dialog";
 import {
     addScore,
@@ -1015,6 +1020,25 @@ export class TimelinePlayer {
             case EventTypeEnum.SendGameResultWithPowerAutomate: // ゲーム結果送信イベント(指定URLへPower Automate向け形式でPOST送信する)
                 sendGameResultWithPowerAutomate(timeline_event.url, timeline_event.variables);
                 this.next(); // すぐに次のタイムラインを実行する
+                break;
+
+            case EventTypeEnum.CheckPreferredUsername: // preferredUsername判定イベント
+                if (hasPreferredUsername()) {
+                    // OKの場合はそのまま次のタイムラインへ進む
+                    this.next();
+                } else {
+                    // NGの場合はngTextを表示し、タイムラインの進行を停止する
+                    if (timeline_event.ngActorName) {
+                        this.message_dialog.setActorNameText(timeline_event.ngActorName);
+                    } else {
+                        this.message_dialog.clearActorNameText();
+                    }
+                    this.hit_area.disableInteractive();
+                    this.typing_timer = this.message_dialog.setTextWithTypingEffect(
+                        interpolateVariables(timeline_event.ngText),
+                        50,
+                    );
+                }
                 break;
 
             default:

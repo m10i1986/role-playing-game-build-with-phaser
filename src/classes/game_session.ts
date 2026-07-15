@@ -62,6 +62,11 @@ async function postResult(url: string, body: unknown, errorMessage: string): Pro
     }
 }
 
+// preferredUsername(起動URLのクエリパラメータ)が設定されているかどうかを返す
+export function hasPreferredUsername(): boolean {
+    return !!preferredUsername;
+}
+
 // URLクエリパラメータ(resultUrl, token, publicKey, preferredUsername)から結果送信先を読み取り、プレイ開始時刻を記録する
 export function initGameSession(): void {
     const params = new URLSearchParams(window.location.search);

@@ -29,6 +29,7 @@ export enum EventTypeEnum {
     InputNumber = "input_number",
     SendGameResultWithPhaserWorks = "send_game_result_with_phaser_works",
     SendGameResultWithPowerAutomate = "send_game_result_with_power_automate",
+    CheckPreferredUsername = "check_preferred_username",
 }
 
 // 変数として扱える値の型
@@ -259,6 +260,14 @@ type SendGameResultWithPowerAutomateEvent = {
     variables?: string[]; // 追加で送信したい変数のkey一覧(number変数・list変数どちらのkeyも指定可能)
 };
 
+// preferredUsername判定イベント(起動URLのクエリパラメータにpreferredUsernameが正しく渡されているか判定する)
+// 判定OKの場合はそのまま次のイベントへ進み、NGの場合はngTextを表示してタイムラインの進行を停止する
+type CheckPreferredUsernameEvent = {
+    event: EventTypeEnum.CheckPreferredUsername;
+    ngText: string; // 判定NG時に表示するダイアログテキスト
+    ngActorName?: string;
+};
+
 // Timelineはイベントの配列
 export type Timeline = (
     | ClickWaitEvent
@@ -289,4 +298,5 @@ export type Timeline = (
     | InputNumberEvent
     | SendGameResultWithPhaserWorksEvent
     | SendGameResultWithPowerAutomateEvent
+    | CheckPreferredUsernameEvent
 )[];
