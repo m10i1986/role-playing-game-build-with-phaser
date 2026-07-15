@@ -20,6 +20,12 @@ export enum EventTypeEnum {
     SetVariable = "set_variable",
     ClearVariable = "clear_variable",
     GetVariable = "get_variable",
+    IncrementVariable = "increment_variable",
+    DecrementVariable = "decrement_variable",
+    SetVariableList = "set_variable_list",
+    ClearVariableList = "clear_variable_list",
+    PushVariableList = "push_variable_list",
+    PopVariableList = "pop_variable_list",
     InputNumber = "input_number",
     SendGameResultWithPhaserWorks = "send_game_result_with_phaser_works",
     SendGameResultWithPowerAutomate = "send_game_result_with_power_automate",
@@ -190,6 +196,47 @@ type ClearVariableEvent = {
     key: string;
 };
 
+// 数値変数加算イベント(未設定時は0から開始し、valueを加算する。value省略時は1)
+type IncrementVariableEvent = {
+    event: EventTypeEnum.IncrementVariable;
+    key: string;
+    value?: number;
+};
+
+// 数値変数減算イベント(未設定時は0から開始し、valueを減算する。value省略時は1)
+type DecrementVariableEvent = {
+    event: EventTypeEnum.DecrementVariable;
+    key: string;
+    value?: number;
+};
+
+// リスト変数設定イベント(通常の変数とは別の名前空間で管理する)
+type SetVariableListEvent = {
+    event: EventTypeEnum.SetVariableList;
+    key: string;
+    values: VariableValue[];
+};
+
+// リスト変数クリアイベント
+type ClearVariableListEvent = {
+    event: EventTypeEnum.ClearVariableList;
+    key: string;
+};
+
+// リスト変数末尾追加イベント(未設定時は空配列から開始する)
+type PushVariableListEvent = {
+    event: EventTypeEnum.PushVariableList;
+    key: string;
+    value: VariableValue;
+};
+
+// リスト変数末尾取り出しイベント(取り出した値はresultKeyへ格納。未設定/空の場合はresultKeyへ格納しない)
+type PopVariableListEvent = {
+    event: EventTypeEnum.PopVariableList;
+    key: string;
+    resultKey?: string;
+};
+
 // 数値入力イベント
 type InputNumberEvent = {
     event: EventTypeEnum.InputNumber;
@@ -232,6 +279,12 @@ export type Timeline = (
     | ClearSoundEvent
     | SetVariableEvent
     | ClearVariableEvent
+    | IncrementVariableEvent
+    | DecrementVariableEvent
+    | SetVariableListEvent
+    | ClearVariableListEvent
+    | PushVariableListEvent
+    | PopVariableListEvent
     | InputNumberEvent
     | SendGameResultWithPhaserWorksEvent
     | SendGameResultWithPowerAutomateEvent

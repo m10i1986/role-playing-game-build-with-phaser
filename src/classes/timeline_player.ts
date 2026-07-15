@@ -2,7 +2,19 @@ import * as Phaser from "phaser";
 import { type Choice, EventTypeEnum, type MultiChoice, type SortOrderItem, type Timeline } from "../types/timeline";
 import { recordAnswer, sendGameResultWithPhaserWorks, sendGameResultWithPowerAutomate } from "./game_session";
 import type { MessageDialog } from "./message_dialog";
-import { addScore, clearVariable, evaluateCondition, interpolateVariables, setVariable } from "./variable_store";
+import {
+    addScore,
+    clearVariable,
+    clearVariableList,
+    decrementVariable,
+    evaluateCondition,
+    incrementVariable,
+    interpolateVariables,
+    popVariableList,
+    pushVariableList,
+    setVariable,
+    setVariableList,
+} from "./variable_store";
 
 export class TimelinePlayer {
     private background_layer: Phaser.GameObjects.Container;
@@ -949,6 +961,41 @@ export class TimelinePlayer {
                 clearVariable(timeline_event.key);
                 this.next(); // すぐに次のタイムラインを実行する
                 break;
+
+            case EventTypeEnum.IncrementVariable: // 数値変数加算イベント
+                incrementVariable(timeline_event.key, timeline_event.value ?? 1);
+                this.next(); // すぐに次のタイムラインを実行する
+                break;
+
+            case EventTypeEnum.DecrementVariable: // 数値変数減算イベント
+                decrementVariable(timeline_event.key, timeline_event.value ?? 1);
+                this.next(); // すぐに次のタイムラインを実行する
+                break;
+
+            case EventTypeEnum.SetVariableList: // リスト変数設定イベント
+                setVariableList(timeline_event.key, timeline_event.values);
+                this.next(); // すぐに次のタイムラインを実行する
+                break;
+
+            case EventTypeEnum.ClearVariableList: // リスト変数クリアイベント
+                clearVariableList(timeline_event.key);
+                this.next(); // すぐに次のタイムラインを実行する
+                break;
+
+            case EventTypeEnum.PushVariableList: // リスト変数末尾追加イベント
+                pushVariableList(timeline_event.key, timeline_event.value);
+                this.next(); // すぐに次のタイムラインを実行する
+                break;
+
+            case EventTypeEnum.PopVariableList: {
+                // リスト変数末尾取り出しイベント
+                const popped = popVariableList(timeline_event.key);
+                if (popped !== undefined && timeline_event.resultKey) {
+                    setVariable(timeline_event.resultKey, popped);
+                }
+                this.next(); // すぐに次のタイムラインを実行する
+                break;
+            }
 
             case EventTypeEnum.InputNumber: // 数値入力イベント
                 this.setNumberInput(
