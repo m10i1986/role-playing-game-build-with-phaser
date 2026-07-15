@@ -804,6 +804,9 @@ export class TimelinePlayer {
         let color: string;
         let alpha: number;
         switch (timeline_event.event) {
+            case EventTypeEnum.ClickWait: // クリック待機イベント(hit_areaのクリックでnext()が呼ばれるまで何もしない)
+                break;
+
             case EventTypeEnum.SetDialog: // ダイアログイベント
                 // initialize actor box fill color
                 color = "#000000";

@@ -1,5 +1,6 @@
 // イベントタイプのenum定義
 export enum EventTypeEnum {
+    ClickWait = "click_wait",
     SetDialog = "dialog",
     ClearDialog = "clear_dialog",
     SetBackground = "set_background",
@@ -36,6 +37,11 @@ export type VariableCondition = {
     key: string;
     operator: ConditionOperator;
     value?: VariableValue; // exists/notExistsでは不要
+};
+
+// クリック待機イベント
+type ClickWaitEvent = {
+    event: EventTypeEnum.ClickWait;
 };
 
 // ダイアログ表示イベント
@@ -207,6 +213,7 @@ type SendGameResultWithPowerAutomateEvent = {
 
 // Timelineはイベントの配列
 export type Timeline = (
+    | ClickWaitEvent
     | SetDialogEvent
     | ClearDialogEvent
     | SetBackgroundEvent
