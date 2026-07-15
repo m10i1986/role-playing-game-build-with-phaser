@@ -1,3 +1,4 @@
+import * as Phaser from "phaser";
 import { type Choice, EventTypeEnum, type MultiChoice, type SortOrderItem, type Timeline } from "../types/timeline";
 import { recordAnswer, sendGameResultWithPhaserWorks, sendGameResultWithPowerAutomate } from "./game_session";
 import type { MessageDialog } from "./message_dialog";

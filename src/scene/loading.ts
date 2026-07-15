@@ -1,3 +1,4 @@
+import * as Phaser from "phaser";
 import { illustrationFiles, musicFiles } from "../senario";
 
 export class LoadingScene extends Phaser.Scene {

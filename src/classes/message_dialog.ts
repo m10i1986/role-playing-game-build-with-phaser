@@ -1,3 +1,5 @@
+import * as Phaser from "phaser";
+
 export type MessageDialogConfig = {
     x: number;
     y: number;
@@ -13,7 +15,14 @@ export class MessageDialog extends Phaser.GameObjects.Container {
     private box: Phaser.GameObjects.Rectangle;
     private text: Phaser.GameObjects.Text;
 
-    private actor_name_box: Phaser.GameObjects.Rectangle;
+    // Phaser 4.2.1時点でRectangle shapeのstroke描画に対角線が入るバグがあるため、
+    // actor_name_boxのみGraphicsで矩形を描画する
+    private actor_name_box: Phaser.GameObjects.Graphics;
+    private actor_name_box_x: number;
+    private actor_name_box_y: number;
+    private actor_name_box_height: number;
+    private actor_name_box_fill_color: number = 0x000000;
+    private actor_name_box_fill_alpha: number = 1.0;
     private actor_name_text: Phaser.GameObjects.Text;
 
     private padding: number;
@@ -48,16 +57,11 @@ export class MessageDialog extends Phaser.GameObjects.Container {
         );
         this.add(this.text); // Containerへの追加
 
-        // 高さ40の白枠付きの黒いRectangleを作成
-        this.actor_name_box = new Phaser.GameObjects.Rectangle(
-            this.scene,
-            x - width / 2,
-            y - height / 2 - margin,
-            0,
-            40,
-            0x000000,
-        ).setStrokeStyle(1, 0xffffff);
-        this.actor_name_box.setOrigin(0, 1); // 原点を左下に設定
+        // 高さ40の白枠付きの黒いRectangleを作成（左下座標を保持しておく）
+        this.actor_name_box_x = x - width / 2;
+        this.actor_name_box_y = y - height / 2 - margin;
+        this.actor_name_box_height = 40;
+        this.actor_name_box = new Phaser.GameObjects.Graphics(this.scene);
         this.actor_name_box.setVisible(false); // 初期状態では非表示
         this.add(this.actor_name_box); // Containerへの追加
 
@@ -89,19 +93,24 @@ export class MessageDialog extends Phaser.GameObjects.Container {
         this.text.setVisible(false);
     }
 
+    // actor_name_boxをGraphicsで描き直す（左下原点相当になるようY座標を調整）
+    private redrawActorNameBox(boxWidth: number) {
+        const box_top_y = this.actor_name_box_y - this.actor_name_box_height;
+
+        this.actor_name_box.clear();
+        this.actor_name_box.fillStyle(this.actor_name_box_fill_color, this.actor_name_box_fill_alpha);
+        this.actor_name_box.fillRect(this.actor_name_box_x, box_top_y, boxWidth, this.actor_name_box_height);
+        this.actor_name_box.lineStyle(1, 0xffffff, 1);
+        this.actor_name_box.strokeRect(this.actor_name_box_x, box_top_y, boxWidth, this.actor_name_box_height);
+    }
+
     // 名前テキストのセット
     public setActorNameText(name: string) {
         this.actor_name_text.setText(name);
 
         // Textの幅に合わせてBoxの幅を調整
         const bounds = this.actor_name_text.getBounds();
-        this.actor_name_box.width = bounds.width + this.padding * 2;
-
-        // Rectangleのサイズを変更した際にstrokeがおいてかれる問題の解消
-        // https://github.com/photonstorm/phaser/issues/4811
-        this.actor_name_box.geom.width = this.actor_name_box.width;
-        // @ts-expect-error
-        this.actor_name_box.updateData();
+        this.redrawActorNameBox(bounds.width + this.padding * 2);
 
         // BoxとTextを表示
         this.actor_name_box.setVisible(true);
@@ -116,7 +125,12 @@ export class MessageDialog extends Phaser.GameObjects.Container {
     }
     // テキストボックスの背景色を変更するメソッド
     public setActorBoxFillColor(color: string = "#000000", alpha: number = 1.0) {
-        this.actor_name_box.setFillStyle(Phaser.Display.Color.HexStringToColor(color).color, alpha);
+        this.actor_name_box_fill_color = Phaser.Display.Color.HexStringToColor(color).color;
+        this.actor_name_box_fill_alpha = alpha;
+
+        // 既に描画済みの幅を維持したまま塗り直す
+        const bounds = this.actor_name_text.getBounds();
+        this.redrawActorNameBox(bounds.width + this.padding * 2);
     }
 
     // MessageDialogクラスに追加するメソッド
