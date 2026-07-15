@@ -20,8 +20,8 @@ export type GameResult = {
 };
 
 // シナリオ側でSetVariableを使って設定する変数名
-const RESULT_SUCCESS_KEY = "result_success";
-const RESULT_SCORE_KEY = "result_score";
+const RESULT_SUCCESS_KEY = "resultSuccess";
+const RESULT_SCORE_KEY = "resultScore";
 
 // 変数ストアからresult_success/result_scoreを読み取り、GameResultを組み立てる
 // 未設定の場合は標準値 { success: true, score: null } を返す
