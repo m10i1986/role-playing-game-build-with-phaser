@@ -14,7 +14,7 @@
 
 | 進行タイプ | 対象イベント | 動作 |
 | --- | --- | --- |
-| クリック待ち | `SetDialog` | 表示後、画面クリックで次のイベントへ進む |
+| クリック待ち | `ClickWait` / `SetDialog` | 表示後、画面クリックで次のイベントへ進む |
 | 入力待ち | `Choice` / `MultiChoice` / `SortOrder` / `InputNumber` | プレイヤーの入力・決定で次へ進む |
 | 即時実行 | 上記以外 | 実行後すぐに次のイベントへ自動で進む |
 
@@ -34,12 +34,16 @@
 
 ### 変数ストア
 
-`SetVariable` / `InputNumber` で保存した変数は以下で利用できます（実装: [src/classes/variable_store.ts](../src/classes/variable_store.ts)）。
+変数ストアには**通常変数**と**リスト変数**の2つの名前空間があります（実装: [src/classes/variable_store.ts](../src/classes/variable_store.ts)）。両者は独立して管理され、同じ `key` でも別物として扱われます。
+
+**通常変数**（`SetVariable` / `IncrementVariable` / `DecrementVariable` / `InputNumber` などで設定）は以下で利用できます。
 
 - **テキスト補間**: `SetDialog` の `text` 内の `{{変数名}}` が変数値に置換される（未定義なら空文字）
 - **表示条件**: `Choice` / `MultiChoice` の選択肢に `condition` を指定すると、条件を満たす場合のみ表示される（後述の [GetVariable](#getvariable--get_variable変数条件) を参照）
-- **スコア加算**: `Choice` の `point` や `MultiChoice` の正誤判定結果が `scoreKey`（デフォルト `"score"`）へ加算される。加算先の変数が未設定の場合は `0` を基準に加算される
+- **スコア加算**: `Choice` の `point` や `MultiChoice` / `SortOrder` の正誤判定結果が `scoreKey`（デフォルト `"score"`）へ加算される。加算先の変数が未設定の場合は `0` を基準に加算される
 - **スコア初期値**: 専用のイベントは無いが、タイムライン先頭に `SetVariable` で `scoreKey` と同名の変数（デフォルト `"score"`）を設定すれば任意の初期値からスコア加算を開始できる（例は [SetVariable](#setvariable--set_variable変数設定) を参照）
+
+**リスト変数**（`SetVariableList` / `PushVariableList` / `PopVariableList` などで設定）は配列値を保持する専用ストアです。テキスト補間・表示条件・スコア加算では使えませんが、`SendGameResultWithPowerAutomate` の `variables` で追加送信データとして参照できます（詳細: [result-submission.md](result-submission.md#variables追加の変数データ)）。
 
 ---
 
@@ -47,6 +51,7 @@
 
 | enum メンバー | 文字列値 | 用途 | 進行 |
 | --- | --- | --- | --- |
+| `ClickWait` | `click_wait` | 画面クリックを待つだけ | クリック待ち |
 | `SetDialog` | `dialog` | ダイアログにテキスト表示 | クリック待ち |
 | `ClearDialog` | `clear_dialog` | ダイアログを消去 | 即時 |
 | `SetBackground` | `set_background` | 背景画像を設定 | 即時 |
@@ -66,11 +71,25 @@
 | `SetVariable` | `set_variable` | 変数を設定 | 即時 |
 | `ClearVariable` | `clear_variable` | 変数を削除 | 即時 |
 | `GetVariable` | `get_variable` | 選択肢の表示条件（単体イベントではない） | - |
+| `IncrementVariable` | `increment_variable` | 数値変数を加算 | 即時 |
+| `DecrementVariable` | `decrement_variable` | 数値変数を減算 | 即時 |
+| `SetVariableList` | `set_variable_list` | リスト変数を設定 | 即時 |
+| `ClearVariableList` | `clear_variable_list` | リスト変数を削除 | 即時 |
+| `PushVariableList` | `push_variable_list` | リスト変数の末尾へ追加 | 即時 |
+| `PopVariableList` | `pop_variable_list` | リスト変数の末尾を取り出す | 即時 |
 | `InputNumber` | `input_number` | 数値入力UIを表示 | 入力待ち |
-| `SendGameResult` | `send_game_result` | ゲーム結果をPhaserWorksへ送信 | 即時 |
+| `SendGameResultWithPhaserWorks` | `send_game_result_with_phaser_works` | ゲーム結果をPhaserWorksへ送信 | 即時 |
 | `SendGameResultWithPowerAutomate` | `send_game_result_with_power_automate` | ゲーム結果をPower Automateへ送信 | 即時 |
 
 ---
+
+## ClickWait / `click_wait`（クリック待ち）
+
+何も表示・変更せず、画面クリックがあるまで進行を止めます。演出の余韻を持たせたい場合や、`ShowWebLink` などの即時イベントの直後にクリック待ちを挟みたい場合に使います。プロパティはありません。
+
+```ts
+{ event: EventTypeEnum.ClickWait },
+```
 
 ## SetDialog / `dialog`（ダイアログ表示）
 
@@ -304,6 +323,7 @@
 | `incorrectKey` | string | ○ | 不正解時の遷移先タイムラインキー |
 | `shuffle` | boolean | 任意 | `true` で初期表示順をシャッフル（デフォルト `true`） |
 | `scoreKey` | string | 任意 | 採点結果の加算先変数名（デフォルト `"score"`）。正解で +1、不正解で +0 |
+| `labelStyle` | string | 任意 | 各ボタン左側に固定表示する順序ラベルの形式。`"number"`: 1始まりの数字（デフォルト） / `"alphabet"`: `A`,`B`,…,`Z`,`AA`,`AB`,… |
 
 `SortOrderItem`（選択肢1件）のプロパティ:
 
@@ -316,11 +336,12 @@
 {
     event: EventTypeEnum.SortOrder,
     items: [
-        { text: "① 材料を準備する" },
-        { text: "② 下ごしらえをする" },
-        { text: "③ 加熱する" },
-        { text: "④ 盛り付ける" },
+        { text: "材料を準備する" },
+        { text: "下ごしらえをする" },
+        { text: "加熱する" },
+        { text: "盛り付ける" },
     ],
+    labelStyle: "alphabet",
     correctKey: "sort_order_correct",
     incorrectKey: "sort_order_incorrect",
 },
@@ -328,6 +349,7 @@
 
 注意点:
 
+- 各ボタンの左側にはスロット位置（表示上の順番）を示す順序ラベルが固定表示されます。`labelStyle` で `"number"`（`1`,`2`,…）か `"alphabet"`（`A`,`B`,…）を選べます。ラベルはスロットに固定され、ボタンを並び替えても動きません
 - `shuffle: false` にすると `items` の記述順のまま表示されるため、通常はデフォルト（シャッフルあり）のまま使用してください
 - 判定時点の並び順（表示テキストの配列）は回答履歴に記録され、ゲーム結果送信に含まれます
 - 問題文は直前に `SetDialog` で表示しておくのが定石です（ボタン群はダイアログ領域を避けて上寄せで配置されます）
@@ -410,7 +432,7 @@
 
 応用: サーバー送信用の結果(result)を設定
 
-エンディング(`key: "ending"`)へ遷移する前に `SetVariable` で `result_success` / `result_score` を設定すると、その内容が `sendGameResultWithPhaserWorks()` 送信時の `result` として送信されます（`result_success` は送信JSON上では `result.success`、`result_score` は `result.score` になります。詳細: [result-submission.md](result-submission.md)）。
+`SendGameResultWithPhaserWorks` で送信する前に `SetVariable` で `result_success` / `result_score` を設定すると、その内容が送信時の `result` として送信されます（`result_success` は送信JSON上では `result.success`、`result_score` は `result.score` になります。詳細: [result-submission.md](result-submission.md)）。
 
 ```ts
 { event: EventTypeEnum.SetVariable, key: "result_success", value: true }, // boolean（未設定時はresult.successがtrue）
@@ -427,6 +449,85 @@
 
 ```ts
 { event: EventTypeEnum.ClearVariable, key: "calc_answer" },
+```
+
+## IncrementVariable / `increment_variable`（数値変数の加算）
+
+通常変数（数値）を加算します。対象変数が未設定、または数値でない場合は `0` を基準に加算します。連続正解のコンボ数やカウンタの実装に使えます。
+
+| プロパティ | 型 | 必須 | 説明 |
+| --- | --- | --- | --- |
+| `key` | string | ○ | 加算対象の変数名 |
+| `value` | number | 任意 | 加算量（デフォルト `1`） |
+
+```ts
+{ event: EventTypeEnum.IncrementVariable, key: "combo_count" },          // +1
+{ event: EventTypeEnum.IncrementVariable, key: "combo_count", value: 5 }, // +5
+```
+
+## DecrementVariable / `decrement_variable`（数値変数の減算）
+
+通常変数（数値）を減算します。挙動は `IncrementVariable` と同様で、未設定・非数値の場合は `0` を基準に減算します。
+
+| プロパティ | 型 | 必須 | 説明 |
+| --- | --- | --- | --- |
+| `key` | string | ○ | 減算対象の変数名 |
+| `value` | number | 任意 | 減算量（デフォルト `1`） |
+
+```ts
+{ event: EventTypeEnum.DecrementVariable, key: "hp", value: 10 }, // -10
+```
+
+## SetVariableList / `set_variable_list`（リスト変数の設定）
+
+リスト変数（配列）を設定します。既存の同名リスト変数があれば上書きされます。リスト変数は通常変数とは別の名前空間で管理されるため、同じ `key` の通常変数とは干渉しません。
+
+| プロパティ | 型 | 必須 | 説明 |
+| --- | --- | --- | --- |
+| `key` | string | ○ | リスト変数名 |
+| `values` | (string \| number \| boolean)[] | ○ | 設定する配列 |
+
+```ts
+{ event: EventTypeEnum.SetVariableList, key: "correct_answers", values: ["バナナ", "リンゴ"] },
+```
+
+## ClearVariableList / `clear_variable_list`（リスト変数の削除）
+
+リスト変数を削除します。
+
+| プロパティ | 型 | 必須 | 説明 |
+| --- | --- | --- | --- |
+| `key` | string | ○ | 削除するリスト変数名 |
+
+```ts
+{ event: EventTypeEnum.ClearVariableList, key: "correct_answers" },
+```
+
+## PushVariableList / `push_variable_list`（リスト変数の末尾追加）
+
+リスト変数の末尾に値を1つ追加します。対象が未設定の場合は空配列から開始します。正解した選択肢を蓄積していく用途などに使えます。
+
+| プロパティ | 型 | 必須 | 説明 |
+| --- | --- | --- | --- |
+| `key` | string | ○ | 追加先のリスト変数名 |
+| `value` | string \| number \| boolean | ○ | 末尾に追加する値 |
+
+```ts
+{ event: EventTypeEnum.PushVariableList, key: "correct_answers", value: "バナナ" },
+```
+
+## PopVariableList / `pop_variable_list`（リスト変数の末尾取り出し）
+
+リスト変数の末尾の値を取り出して削除します。取り出した値は `resultKey` で指定した通常変数へ保存されます。リストが空・未設定の場合、または `resultKey` を省略した場合は保存を行いません。
+
+| プロパティ | 型 | 必須 | 説明 |
+| --- | --- | --- | --- |
+| `key` | string | ○ | 取り出し元のリスト変数名 |
+| `resultKey` | string | 任意 | 取り出した値の保存先となる通常変数名。未指定なら値は破棄される |
+
+```ts
+{ event: EventTypeEnum.PopVariableList, key: "correct_answers", resultKey: "last_answer" },
+{ event: EventTypeEnum.SetDialog, text: "最後の回答は {{last_answer}} でした" },
 ```
 
 ## GetVariable / `get_variable`（変数条件）
@@ -494,14 +595,14 @@
 
 ---
 
-## SendGameResult / `send_game_result`（ゲーム結果送信・PhaserWorks向け）
+## SendGameResultWithPhaserWorks / `send_game_result_with_phaser_works`（ゲーム結果送信・PhaserWorks向け）
 
 起動URLの `resultUrl` が指定されている場合、回答履歴・プレイ時間・`result`（`result_success`/`result_score` から組み立てたゲーム結果）をまとめてPhaserWorksへPOST送信します。`resultUrl` が未指定の場合は何も送信されません。
 
 このイベント自体にプロパティはありません。
 
 ```ts
-{ event: EventTypeEnum.SendGameResult },
+{ event: EventTypeEnum.SendGameResultWithPhaserWorks },
 ```
 
 詳細（リクエスト仕様・暗号化・`result`の設定方法など）: [result-submission.md](result-submission.md#phaserworks向け送信)
@@ -563,7 +664,7 @@ export const senarioData: Timelines = {
     ending: [
         { event: EventTypeEnum.ClearSound, key: "bgm01" },
         // 結果送信先(resultUrl)が設定されていればPhaserWorksへゲーム結果を送信する
-        { event: EventTypeEnum.SendGameResult },
+        { event: EventTypeEnum.SendGameResultWithPhaserWorks },
         { event: EventTypeEnum.SceneTransition, key: "ending" },
     ],
 };
