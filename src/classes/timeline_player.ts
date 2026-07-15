@@ -1041,6 +1041,15 @@ export class TimelinePlayer {
                 }
                 break;
 
+            case EventTypeEnum.CheckCondition: {
+                // 変数条件判定イベント: 判定結果に応じて遷移先タイムラインキーを出し分け、シーンをリスタートする
+                const condition_result = evaluateCondition(timeline_event.condition);
+                this.scene.scene.restart({
+                    id: condition_result ? timeline_event.trueKey : timeline_event.falseKey,
+                });
+                break;
+            }
+
             default:
                 break;
         }

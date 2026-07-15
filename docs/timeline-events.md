@@ -81,6 +81,7 @@
 | `SendGameResultWithPhaserWorks` | `send_game_result_with_phaser_works` | ゲーム結果をPhaserWorksへ送信 | 即時 |
 | `SendGameResultWithPowerAutomate` | `send_game_result_with_power_automate` | ゲーム結果をPower Automateへ送信 | 即時 |
 | `CheckPreferredUsername` | `check_preferred_username` | 起動URLの`preferredUsername`を判定 | 判定OK: 即時 / 判定NG: 停止 |
+| `CheckCondition` | `check_condition` | 変数条件を判定し、結果に応じて遷移先タイムラインを分岐 | 遷移（終端） |
 
 ---
 
@@ -533,7 +534,7 @@
 
 ## GetVariable / `get_variable`（変数条件）
 
-**単体のタイムラインイベントとしては使えません。** `Choice` / `MultiChoice` の選択肢の `condition` プロパティ内で、変数値による表示条件（`VariableCondition`）を表すために使います。
+**単体のタイムラインイベントとしては使えません。** `Choice` / `MultiChoice` の選択肢の `condition` プロパティや、[CheckCondition](#checkcondition--check_condition変数条件分岐) の `condition` プロパティ内で、変数値による条件（`VariableCondition`）を表すために使います。
 
 | プロパティ | 型 | 必須 | 説明 |
 | --- | --- | --- | --- |
@@ -638,6 +639,30 @@
 注意点:
 
 - 判定NG時はタイムラインが完全に停止するため、シナリオの先頭付近など、以降のイベント（`SceneTransition`によるタイトル遷移など）を前提にしない位置に配置してください。
+
+## CheckCondition / `check_condition`（変数条件分岐）
+
+`condition`（[GetVariable](#getvariable--get_variable変数条件)と同じ`VariableCondition`）を判定し、結果が `true` なら `trueKey`、`false` なら `falseKey` のタイムラインへ遷移します（内部的には `TimelineTransition` と同じシーンリスタート）。このイベント以降のイベントは実行されないため、タイムラインの終端として使います。
+
+| プロパティ | 型 | 必須 | 説明 |
+| --- | --- | --- | --- |
+| `condition` | VariableCondition | ○ | 判定する変数条件 |
+| `trueKey` | string | ○ | 判定結果が`true`の場合の遷移先タイムラインキー |
+| `falseKey` | string | ○ | 判定結果が`false`の場合の遷移先タイムラインキー |
+
+```ts
+{
+    event: EventTypeEnum.CheckCondition,
+    condition: { event: EventTypeEnum.GetVariable, key: "score", operator: "gte", value: 3 },
+    trueKey: "bonus_stage",
+    falseKey: "normal_stage",
+},
+```
+
+注意点:
+
+- `Choice`/`MultiChoice`の`condition`は「選択肢の表示可否」の判定に使いますが、`CheckCondition`は「プレイヤー操作なしでタイムラインを自動分岐」させる点が異なります
+- シーンのリスタートを伴うため、背景・前景・ダイアログなどの表示状態はシーンの `init`/`create` の実装に従って再構築されます
 
 ---
 

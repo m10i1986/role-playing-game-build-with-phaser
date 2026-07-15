@@ -30,6 +30,7 @@ export enum EventTypeEnum {
     SendGameResultWithPhaserWorks = "send_game_result_with_phaser_works",
     SendGameResultWithPowerAutomate = "send_game_result_with_power_automate",
     CheckPreferredUsername = "check_preferred_username",
+    CheckCondition = "check_condition",
 }
 
 // 変数として扱える値の型
@@ -268,6 +269,14 @@ type CheckPreferredUsernameEvent = {
     ngActorName?: string;
 };
 
+// 変数条件判定イベント(conditionの判定結果に応じて遷移先タイムラインを分岐する)
+type CheckConditionEvent = {
+    event: EventTypeEnum.CheckCondition;
+    condition: VariableCondition;
+    trueKey: string; // 判定結果がtrueの場合の遷移先タイムラインキー
+    falseKey: string; // 判定結果がfalseの場合の遷移先タイムラインキー
+};
+
 // Timelineはイベントの配列
 export type Timeline = (
     | ClickWaitEvent
@@ -299,4 +308,5 @@ export type Timeline = (
     | SendGameResultWithPhaserWorksEvent
     | SendGameResultWithPowerAutomateEvent
     | CheckPreferredUsernameEvent
+    | CheckConditionEvent
 )[];
