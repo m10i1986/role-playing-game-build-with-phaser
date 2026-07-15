@@ -508,7 +508,7 @@
 
 ## SendGameResultWithPowerAutomate / `send_game_result_with_power_automate`（ゲーム結果送信・Power Automate向け）
 
-指定した Power Automate の HTTP Webhook トリガーへ、`userPrincipalName`・成否・スコア・プレイ時間のみをPOST送信します（暗号化なし）。起動URLに `userPrincipalName` が未指定の場合、送信は中断されコンソールにエラーが出力されます。
+指定した Power Automate の HTTP Webhook トリガーへ、`preferredUsername`・成否・スコア・プレイ時間のみをPOST送信します（暗号化なし）。起動URLに `preferredUsername` が未指定の場合、送信は中断されコンソールにエラーが出力されます。
 
 | プロパティ | 型 | 必須 | 説明 |
 | --- | --- | --- | --- |

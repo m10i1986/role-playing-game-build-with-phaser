@@ -39,7 +39,7 @@ function buildGameResult(): GameResult {
 let resultUrl: string | undefined;
 let resultToken: string | undefined;
 let resultPublicKey: string | undefined;
-let userPrincipalName: string | undefined;
+let preferredUsername: string | undefined;
 let started_at: number | undefined;
 
 const answers: AnswerRecord[] = [];
@@ -62,13 +62,13 @@ async function postResult(url: string, body: unknown, errorMessage: string): Pro
     }
 }
 
-// URLクエリパラメータ(resultUrl, token, publicKey, userPrincipalName)から結果送信先を読み取り、プレイ開始時刻を記録する
+// URLクエリパラメータ(resultUrl, token, publicKey, preferredUsername)から結果送信先を読み取り、プレイ開始時刻を記録する
 export function initGameSession(): void {
     const params = new URLSearchParams(window.location.search);
     resultUrl = params.get("resultUrl") ?? undefined;
     resultToken = params.get("token") ?? undefined;
     resultPublicKey = params.get("publicKey") ?? undefined;
-    userPrincipalName = params.get("userPrincipalName") ?? undefined;
+    preferredUsername = params.get("preferredUsername") ?? undefined;
     started_at = Date.now();
     answers.length = 0;
 }
@@ -102,17 +102,17 @@ export async function sendGameResultWithPhaserWorks(): Promise<void> {
 }
 
 // 指定URLへPower AutomateのHTTP Webhookトリガーが受け取れる形式でJSONをPOST送信する(暗号化は行わない)
-// userPrincipalName(起動URLのクエリパラメータ)が未設定の場合は、ユーザーを特定できないため送信を中断する
+// preferredUsername(起動URLのクエリパラメータ)が未設定の場合は、ユーザーを特定できないため送信を中断する
 export async function sendGameResultWithPowerAutomate(url: string): Promise<void> {
-    if (!userPrincipalName) {
-        console.error("[ERROR] userPrincipalNameが未設定のため、Power Automateへのゲーム結果送信を中断しました");
+    if (!preferredUsername) {
+        console.error("[ERROR] preferredUsernameが未設定のため、Power Automateへのゲーム結果送信を中断しました");
         return;
     }
 
     const gameResult = buildGameResult();
 
     const body = {
-        userPrincipalName,
+        preferredUsername,
         success: gameResult.success,
         score: gameResult.score,
         playTimeMs: elapsedSinceStart(),
