@@ -86,7 +86,7 @@ export class TimelinePlayer {
         // 巻き戻しボタン(▲)を画面右上に配置(巻き戻し許可区間でのみ表示・有効化する)
         this.back_button = new Phaser.GameObjects.Text(this.scene, width - 30, 30, "▲", {
             fontSize: "28px",
-            color: "#ffffff",
+            color: "#01eeee",
             ...this.text_style,
         }).setOrigin(0.5);
         this.back_button.setVisible(false);
