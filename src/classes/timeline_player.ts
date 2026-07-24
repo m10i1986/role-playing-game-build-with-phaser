@@ -39,6 +39,9 @@ export class TimelinePlayer {
     // 巻き戻し許可区間(AllowBackStart〜AllowBackEnd)の状態管理
     private allow_back = false;
     private back_stack: number[] = []; // 区間内で通過した「表示イベント直前のtimeline_index」
+    // 直近で通過したSetBackground/ClearBackgroundのtimeline_index(表示イベントを履歴に積む際、
+    // 表示イベント自身の位置ではなくこちらを積むことで、goBack()時に背景も正しく再現されるようにする)
+    private last_background_change_index: number | undefined;
     private back_button: Phaser.GameObjects.Text;
 
     private weblink_box: Phaser.GameObjects.Rectangle | undefined;
@@ -845,17 +848,29 @@ export class TimelinePlayer {
         // タイムラインのイベントを取得してから、timelineIndexをインクリメント
         const timeline_event = this.timeline[this.timeline_index++];
 
-        // 巻き戻し許可区間内であれば、ユーザー操作待ちになる「表示イベント」の位置を履歴に積む
-        // (goBack()で1つ前の表示イベントまで戻れるようにするため。goBack()直後の再表示で同じ位置を
-        // 二重に積まないよう、スタック先頭と同じ位置であれば積まない)
         const current_position = this.timeline_index - 1;
+
+        // SetBackground/ClearBackgroundを通過した位置を記録しておく(表示イベントを履歴に積む際、
+        // この位置を優先して積むことで、goBack()時に背景の状態も正しく再現できるようにする)
         if (
             this.allow_back &&
-            this.isBackTargetEvent(timeline_event.event) &&
-            this.back_stack[this.back_stack.length - 1] !== current_position
+            (timeline_event.event === EventTypeEnum.SetBackground ||
+                timeline_event.event === EventTypeEnum.ClearBackground)
         ) {
-            this.back_stack.push(current_position);
-            this.updateBackButtonState();
+            this.last_background_change_index = current_position;
+        }
+
+        // 巻き戻し許可区間内であれば、ユーザー操作待ちになる「表示イベント」の位置を履歴に積む
+        // (goBack()で1つ前の表示イベントまで戻れるようにするため。直近にSetBackground/ClearBackgroundを
+        // 通過していればそちらの位置を積み、背景も含めて再現する。goBack()直後の再表示で同じ位置を
+        // 二重に積まないよう、スタック先頭と同じ位置であれば積まない)
+        if (this.allow_back && this.isBackTargetEvent(timeline_event.event)) {
+            const back_target_position = this.last_background_change_index ?? current_position;
+            if (this.back_stack[this.back_stack.length - 1] !== back_target_position) {
+                this.back_stack.push(back_target_position);
+                this.updateBackButtonState();
+            }
+            this.last_background_change_index = undefined;
         }
 
         let color: string;
@@ -1092,6 +1107,7 @@ export class TimelinePlayer {
                 this.allow_back = true;
                 // 区間開始位置を最初の履歴として積んでおく(これより前には戻れない)
                 this.back_stack = [this.timeline_index];
+                this.last_background_change_index = undefined;
                 this.showBackButton();
                 this.next(); // すぐに次のタイムラインを実行する
                 break;
@@ -1099,6 +1115,7 @@ export class TimelinePlayer {
             case EventTypeEnum.AllowBackEnd: // 巻き戻し許可区間の終了イベント
                 this.allow_back = false;
                 this.back_stack = [];
+                this.last_background_change_index = undefined;
                 this.hideBackButton();
                 this.next(); // すぐに次のタイムラインを実行する
                 break;

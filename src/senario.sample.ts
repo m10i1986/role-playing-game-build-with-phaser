@@ -67,9 +67,32 @@ export const senarioData: Timelines = {
             event: EventTypeEnum.Choice,
             choices: [
                 { text: "はい", key: "multi_choice" },
-                { text: "いいえ", key: "presentation" },
+                { text: "いいえ", key: "slideshow" },
             ],
         },
+    ],
+    slideshow: [
+        // クリアする
+        { event: EventTypeEnum.ClearDialog },
+        { event: EventTypeEnum.ClearForeground },
+        { event: EventTypeEnum.ClearBackground },
+        { event: EventTypeEnum.AllowBackStart },
+        // スライドショーの開始
+        { event: EventTypeEnum.ClearBackground },
+        { event: EventTypeEnum.SetBackground, key: "slide01" },
+        { event: EventTypeEnum.ClickWait },
+        { event: EventTypeEnum.ClearBackground },
+        { event: EventTypeEnum.SetBackground, key: "slide02" },
+        { event: EventTypeEnum.ClickWait },
+        { event: EventTypeEnum.ClearBackground },
+        { event: EventTypeEnum.SetBackground, key: "slide03" },
+        { event: EventTypeEnum.ClickWait },
+        { event: EventTypeEnum.ClearBackground },
+        { event: EventTypeEnum.SetBackground, key: "slide04" },
+        { event: EventTypeEnum.ClickWait },
+        // スライドショーの終了
+        { event: EventTypeEnum.AllowBackEnd },
+        { event: EventTypeEnum.TimelineTransition, key: "presentation" },
     ],
     // 背景・画面枠・前景・BGM・Webリンクなど、演出系イベントをまとめたサンプル
     presentation: [
