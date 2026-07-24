@@ -31,19 +31,6 @@ export class TimelinePlayer {
     private timeline?: Timeline;
     private timeline_index = 0;
 
-    // 選択肢ボタン等、next()呼び出しの前に破棄すべきインタラクティブUI要素
-    private active_ui: Phaser.GameObjects.GameObject[] = [];
-    // active_ui破棄だけでは片付かない後始末(キーボードリスナー解除など)
-    private active_cleanup: (() => void)[] = [];
-
-    // 巻き戻し許可区間(AllowBackStart〜AllowBackEnd)の状態管理
-    private allow_back = false;
-    private back_stack: number[] = []; // 区間内で通過した「表示イベント直前のtimeline_index」
-    // 直近で通過したSetBackground/ClearBackgroundのtimeline_index(表示イベントを履歴に積む際、
-    // 表示イベント自身の位置ではなくこちらを積むことで、goBack()時に背景も正しく再現されるようにする)
-    private last_background_change_index: number | undefined;
-    private back_button: Phaser.GameObjects.Text;
-
     private weblink_box: Phaser.GameObjects.Rectangle | undefined;
     private weblink_text: Phaser.GameObjects.Text | undefined;
 
@@ -85,31 +72,6 @@ export class TimelinePlayer {
 
         // hitAreaをUIレイヤーに追加
         this.ui_layer.add(this.hit_area);
-
-        // 巻き戻しボタン(▲)を画面右上に配置(巻き戻し許可区間でのみ表示・有効化する)
-        this.back_button = new Phaser.GameObjects.Text(this.scene, width - 30, 30, "▲", {
-            fontSize: "28px",
-            color: "#01eeee",
-            ...this.text_style,
-        }).setOrigin(0.5);
-        this.back_button.setVisible(false);
-        this.back_button.on("pointerdown", () => {
-            this.goBack();
-        });
-        this.ui_layer.add(this.back_button);
-    }
-
-    // active_uiに登録済みのインタラクティブUI要素と、キーボードリスナー等の後始末を全て実行する
-    private clearActiveUi() {
-        for (const obj of this.active_ui) {
-            obj.destroy();
-        }
-        this.active_ui = [];
-
-        for (const cleanup of this.active_cleanup) {
-            cleanup();
-        }
-        this.active_cleanup = [];
     }
 
     // タイムラインの再生を開始
@@ -230,7 +192,6 @@ export class TimelinePlayer {
             button.setFillStyle(fillColor);
         });
         this.ui_layer.add(button);
-        this.active_ui.push(button);
         return button;
     }
 
@@ -238,7 +199,6 @@ export class TimelinePlayer {
     private createButtonLabel(x: number, y: number, text: string): Phaser.GameObjects.Text {
         const label = new Phaser.GameObjects.Text(this.scene, x, y, text, this.text_style).setOrigin(0.5);
         this.ui_layer.add(label);
-        this.active_ui.push(label);
         return label;
     }
 
@@ -598,6 +558,8 @@ export class TimelinePlayer {
         // 表示用の文字列バッファ(キー入力中の未確定値をそのまま表示するためnumberではなくstringで保持)
         let inputText = String(value);
 
+        const created: Phaser.GameObjects.GameObject[] = [];
+
         const centerY = height / 2 - 40;
         const buttonSize = 50;
         const valueBoxWidth = 160;
@@ -612,7 +574,8 @@ export class TimelinePlayer {
             0x000000,
             0x333333,
         );
-        this.createButtonLabel(minusButton.x, centerY, "-");
+        created.push(minusButton);
+        created.push(this.createButtonLabel(minusButton.x, centerY, "-"));
 
         // プラスボタン
         const plusButton = this.createHoverButton(
@@ -623,7 +586,8 @@ export class TimelinePlayer {
             0x000000,
             0x333333,
         );
-        this.createButtonLabel(plusButton.x, centerY, "+");
+        created.push(plusButton);
+        created.push(this.createButtonLabel(plusButton.x, centerY, "+"));
 
         // 値表示ボックス
         const valueBox = new Phaser.GameObjects.Rectangle(
@@ -635,14 +599,16 @@ export class TimelinePlayer {
             0x000000,
         ).setStrokeStyle(1, 0xffffff);
         this.ui_layer.add(valueBox);
-        this.active_ui.push(valueBox);
+        created.push(valueBox);
 
         const valueText = this.createButtonLabel(width / 2, centerY, inputText);
+        created.push(valueText);
 
         // 決定ボタン
         const decideY = centerY + buttonSize + 40;
         const decideButton = this.createHoverButton(width / 2, decideY, 160, 40, 0x000000, 0x333333);
-        this.createButtonLabel(width / 2, decideY, "決定");
+        created.push(decideButton);
+        created.push(this.createButtonLabel(width / 2, decideY, "決定"));
 
         // -/+ボタンがmin/maxに達しているかを視覚的に反映
         const refreshButtonState = () => {
@@ -676,6 +642,14 @@ export class TimelinePlayer {
             refreshButtonState();
         });
 
+        // このメソッドで生成した全GameObjectとキーボードリスナーを破棄する
+        const cleanup = () => {
+            for (const obj of created) {
+                obj.destroy();
+            }
+            this.scene.input.keyboard?.off("keydown", keydownHandler);
+        };
+
         // 決定処理(決定ボタン押下 / Enterキー共通)
         // キー入力中はmin/maxチェックを行わず、決定時にのみ数値へ変換しクランプする
         const confirm = () => {
@@ -687,7 +661,7 @@ export class TimelinePlayer {
             if (max !== undefined) finalValue = Math.min(max, finalValue);
             setVariable(key, finalValue);
             recordAnswer("input_number", key, finalValue);
-            this.clearActiveUi();
+            cleanup();
             this.hit_area.setInteractive({ useHandCursor: true });
             this.next();
         };
@@ -715,9 +689,6 @@ export class TimelinePlayer {
             refreshButtonState();
         };
         this.scene.input.keyboard?.on("keydown", keydownHandler);
-        this.active_cleanup.push(() => {
-            this.scene.input.keyboard?.off("keydown", keydownHandler);
-        });
     }
 
     private showWebLink(url: string, text: string | undefined, target: string | undefined = "_blank") {
@@ -847,31 +818,6 @@ export class TimelinePlayer {
 
         // タイムラインのイベントを取得してから、timelineIndexをインクリメント
         const timeline_event = this.timeline[this.timeline_index++];
-
-        const current_position = this.timeline_index - 1;
-
-        // SetBackground/ClearBackgroundを通過した位置を記録しておく(表示イベントを履歴に積む際、
-        // この位置を優先して積むことで、goBack()時に背景の状態も正しく再現できるようにする)
-        if (
-            this.allow_back &&
-            (timeline_event.event === EventTypeEnum.SetBackground ||
-                timeline_event.event === EventTypeEnum.ClearBackground)
-        ) {
-            this.last_background_change_index = current_position;
-        }
-
-        // 巻き戻し許可区間内であれば、ユーザー操作待ちになる「表示イベント」の位置を履歴に積む
-        // (goBack()で1つ前の表示イベントまで戻れるようにするため。直近にSetBackground/ClearBackgroundを
-        // 通過していればそちらの位置を積み、背景も含めて再現する。goBack()直後の再表示で同じ位置を
-        // 二重に積まないよう、スタック先頭と同じ位置であれば積まない)
-        if (this.allow_back && this.isBackTargetEvent(timeline_event.event)) {
-            const back_target_position = this.last_background_change_index ?? current_position;
-            if (this.back_stack[this.back_stack.length - 1] !== back_target_position) {
-                this.back_stack.push(back_target_position);
-                this.updateBackButtonState();
-            }
-            this.last_background_change_index = undefined;
-        }
 
         let color: string;
         let alpha: number;
@@ -1095,87 +1041,17 @@ export class TimelinePlayer {
                 }
                 break;
 
-            case EventTypeEnum.CheckCondition:
+            case EventTypeEnum.CheckCondition: {
                 // 変数条件判定イベント: 判定結果に応じて遷移先タイムラインキーを出し分け、シーンをリスタートする
                 const condition_result = evaluateCondition(timeline_event.condition);
                 this.scene.scene.restart({
                     id: condition_result ? timeline_event.trueKey : timeline_event.falseKey,
                 });
                 break;
-
-            case EventTypeEnum.AllowBackStart: // 巻き戻し許可区間の開始イベント
-                this.allow_back = true;
-                // 区間開始位置を最初の履歴として積んでおく(これより前には戻れない)
-                this.back_stack = [this.timeline_index];
-                this.last_background_change_index = undefined;
-                this.showBackButton();
-                this.next(); // すぐに次のタイムラインを実行する
-                break;
-
-            case EventTypeEnum.AllowBackEnd: // 巻き戻し許可区間の終了イベント
-                this.allow_back = false;
-                this.back_stack = [];
-                this.last_background_change_index = undefined;
-                this.hideBackButton();
-                this.next(); // すぐに次のタイムラインを実行する
-                break;
+            }
 
             default:
                 break;
         }
-    }
-
-    // 巻き戻し履歴に積む対象(ユーザー操作待ちで停止する「表示イベント」)かどうかを判定する
-    private isBackTargetEvent(event: EventTypeEnum): boolean {
-        return (
-            event === EventTypeEnum.ClickWait ||
-            event === EventTypeEnum.SetDialog ||
-            event === EventTypeEnum.Choice ||
-            event === EventTypeEnum.MultiChoice ||
-            event === EventTypeEnum.SortOrder ||
-            event === EventTypeEnum.InputNumber
-        );
-    }
-
-    // 巻き戻しボタン(▲)を表示する
-    private showBackButton() {
-        this.back_button.setVisible(true);
-        this.updateBackButtonState();
-    }
-
-    // 巻き戻しボタン(▲)を非表示にする
-    private hideBackButton() {
-        this.back_button.setVisible(false);
-        this.back_button.disableInteractive();
-    }
-
-    // 履歴の残数に応じて巻き戻しボタン(▲)の有効/無効を切り替える
-    private updateBackButtonState() {
-        if (!this.back_button.visible) {
-            return;
-        }
-        if (this.back_stack.length > 1) {
-            this.back_button.setInteractive({ useHandCursor: true }).setAlpha(1);
-        } else {
-            this.back_button.disableInteractive().setAlpha(0.4);
-        }
-    }
-
-    // 1つ前の表示イベントまで巻き戻す
-    private goBack() {
-        if (this.back_stack.length <= 1) {
-            return;
-        }
-
-        // 現在地点を捨て、1つ前の表示イベント位置へ戻す
-        this.back_stack.pop();
-        const target_index = this.back_stack[this.back_stack.length - 1];
-        this.timeline_index = target_index;
-
-        // 選択肢ボタン等、表示中のインタラクティブUIを破棄してから再表示する
-        this.clearActiveUi();
-        this.hit_area.setInteractive({ useHandCursor: true });
-
-        this.next();
     }
 }

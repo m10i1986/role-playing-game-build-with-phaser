@@ -56,43 +56,15 @@ export const senarioData: Timelines = {
     ],
     unit02: [
         //{ event: EventTypeEnum.SetBackground, key: "sample02" },
-        { event: EventTypeEnum.AllowBackStart },
-        { event: EventTypeEnum.SetDialog, text: "巻き戻し可能区間です(1)" },
-        { event: EventTypeEnum.ClearDialog },
-        { event: EventTypeEnum.SetDialog, text: "巻き戻し可能区間です(2)" },
         { event: EventTypeEnum.ClearDialog },
         { event: EventTypeEnum.SetDialog, text: "テストに進みますか？" },
-        { event: EventTypeEnum.AllowBackEnd },
         {
             event: EventTypeEnum.Choice,
             choices: [
                 { text: "はい", key: "multi_choice" },
-                { text: "いいえ", key: "slideshow" },
+                { text: "いいえ", key: "presentation" },
             ],
         },
-    ],
-    slideshow: [
-        // クリアする
-        { event: EventTypeEnum.ClearDialog },
-        { event: EventTypeEnum.ClearForeground },
-        { event: EventTypeEnum.ClearBackground },
-        { event: EventTypeEnum.AllowBackStart },
-        // スライドショーの開始
-        { event: EventTypeEnum.ClearBackground },
-        { event: EventTypeEnum.SetBackground, key: "slide01" },
-        { event: EventTypeEnum.ClickWait },
-        { event: EventTypeEnum.ClearBackground },
-        { event: EventTypeEnum.SetBackground, key: "slide02" },
-        { event: EventTypeEnum.ClickWait },
-        { event: EventTypeEnum.ClearBackground },
-        { event: EventTypeEnum.SetBackground, key: "slide03" },
-        { event: EventTypeEnum.ClickWait },
-        { event: EventTypeEnum.ClearBackground },
-        { event: EventTypeEnum.SetBackground, key: "slide04" },
-        { event: EventTypeEnum.ClickWait },
-        // スライドショーの終了
-        { event: EventTypeEnum.AllowBackEnd },
-        { event: EventTypeEnum.TimelineTransition, key: "presentation" },
     ],
     // 背景・画面枠・前景・BGM・Webリンクなど、演出系イベントをまとめたサンプル
     presentation: [
