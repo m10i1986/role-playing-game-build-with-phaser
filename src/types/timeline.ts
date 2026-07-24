@@ -31,6 +31,8 @@ export enum EventTypeEnum {
     SendGameResultWithPowerAutomate = "send_game_result_with_power_automate",
     CheckPreferredUsername = "check_preferred_username",
     CheckCondition = "check_condition",
+    AllowBackStart = "allow_back_start",
+    AllowBackEnd = "allow_back_end",
 }
 
 // 変数として扱える値の型
@@ -277,6 +279,16 @@ type CheckConditionEvent = {
     falseKey: string; // 判定結果がfalseの場合の遷移先タイムラインキー
 };
 
+// 巻き戻し許可区間の開始イベント(このイベント以降、AllowBackEndまでの間は画面右上のボタンで1つ前の表示イベントへ戻れる)
+type AllowBackStartEvent = {
+    event: EventTypeEnum.AllowBackStart;
+};
+
+// 巻き戻し許可区間の終了イベント
+type AllowBackEndEvent = {
+    event: EventTypeEnum.AllowBackEnd;
+};
+
 // Timelineはイベントの配列
 export type Timeline = (
     | ClickWaitEvent
@@ -309,4 +321,6 @@ export type Timeline = (
     | SendGameResultWithPowerAutomateEvent
     | CheckPreferredUsernameEvent
     | CheckConditionEvent
+    | AllowBackStartEvent
+    | AllowBackEndEvent
 )[];

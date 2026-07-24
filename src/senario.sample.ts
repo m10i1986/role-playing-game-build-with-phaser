@@ -56,8 +56,13 @@ export const senarioData: Timelines = {
     ],
     unit02: [
         //{ event: EventTypeEnum.SetBackground, key: "sample02" },
+        { event: EventTypeEnum.AllowBackStart },
+        { event: EventTypeEnum.SetDialog, text: "巻き戻し可能区間です(1)" },
+        { event: EventTypeEnum.ClearDialog },
+        { event: EventTypeEnum.SetDialog, text: "巻き戻し可能区間です(2)" },
         { event: EventTypeEnum.ClearDialog },
         { event: EventTypeEnum.SetDialog, text: "テストに進みますか？" },
+        { event: EventTypeEnum.AllowBackEnd },
         {
             event: EventTypeEnum.Choice,
             choices: [
