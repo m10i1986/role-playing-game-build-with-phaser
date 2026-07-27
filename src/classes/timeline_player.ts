@@ -1161,7 +1161,7 @@ export class TimelinePlayer {
                 break;
 
             case EventTypeEnum.SendGameResultWithPhaserWorks: // ゲーム結果送信イベント(結果送信先が設定されていればPhaserWorksへ全データを送信する)
-                sendGameResultWithPhaserWorks();
+                sendGameResultWithPhaserWorks(timeline_event.variables);
                 this.next(); // すぐに次のタイムラインを実行する
                 break;
 

@@ -85,7 +85,8 @@ export function recordAnswer(type: AnswerRecordType, key: string, value: Variabl
 
 // 結果送信先が設定されている場合、回答履歴・プレイ時間をJSONでPhaserWorksへPOST送信する
 // publicKeyが指定されている場合はECIES(ECDH + AES-GCM)で本文を暗号化してから送信する
-export async function sendGameResultWithPhaserWorks(): Promise<void> {
+// variablesを指定すると、そのkeyに対応するnumber変数・list変数の値を送信データに追加できる
+export async function sendGameResultWithPhaserWorks(variables?: string[]): Promise<void> {
     if (!resultUrl) {
         return;
     }
@@ -93,8 +94,9 @@ export async function sendGameResultWithPhaserWorks(): Promise<void> {
     const body = {
         token: resultToken,
         playTimeMs: elapsedSinceStart(),
-        answers,
+        //answers, //すべての回答
         result: buildGameResult(),
+        ...(variables ? { variables: collectVariables(variables) } : {}),
     };
 
     // encryptResultPayload()の失敗もpostResult()と同じメッセージで捕捉する(postResult自体はfetch失敗を内部で捕捉済み)
