@@ -263,14 +263,14 @@ type InputTextEvent = {
 // ゲーム結果送信イベント(設定されていればPhaserWorksへデータを送信する)
 type SendGameResultWithPhaserWorksEvent = {
     event: EventTypeEnum.SendGameResultWithPhaserWorks;
-    variables?: string[]; // 追加で送信したい変数のkey一覧(number変数・list変数どちらのkeyも指定可能)
+    variables?: string[]; // 追加で送信したい変数のkey一覧(通常変数(文字列・数値・真偽値)・list変数どちらのkeyも指定可能)
 };
 
 // ゲーム結果送信イベント(指定URLへPower AutomateのHTTP Webhookトリガーが受け取れる形式でPOST送信する)
 type SendGameResultWithPowerAutomateEvent = {
     event: EventTypeEnum.SendGameResultWithPowerAutomate;
     url: string;
-    variables?: string[]; // 追加で送信したい変数のkey一覧(number変数・list変数どちらのkeyも指定可能)
+    variables?: string[]; // 追加で送信したい変数のkey一覧(通常変数(文字列・数値・真偽値)・list変数どちらのkeyも指定可能)
 };
 
 // preferredUsername判定イベント(起動URLのクエリパラメータにpreferredUsernameが正しく渡されているか判定する)

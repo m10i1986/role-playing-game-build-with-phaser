@@ -85,7 +85,7 @@ export function recordAnswer(type: AnswerRecordType, key: string, value: Variabl
 
 // 結果送信先が設定されている場合、回答履歴・プレイ時間をJSONでPhaserWorksへPOST送信する
 // publicKeyが指定されている場合はECIES(ECDH + AES-GCM)で本文を暗号化してから送信する
-// variablesを指定すると、そのkeyに対応するnumber変数・list変数の値を送信データに追加できる
+// variablesを指定すると、そのkeyに対応する通常変数(文字列・数値・真偽値)・list変数の値を送信データに追加できる
 export async function sendGameResultWithPhaserWorks(variables?: string[]): Promise<void> {
     if (!resultUrl) {
         return;
@@ -109,12 +109,12 @@ export async function sendGameResultWithPhaserWorks(variables?: string[]): Promi
 }
 
 // 指定されたkey一覧を変数ストアから読み取り、key→値のマップを組み立てる
-// number変数として見つかればその数値、見つからない場合はlist変数として調べその配列、どちらにも該当しなければnullを格納する
-function collectVariables(keys: string[]): Record<string, number | VariableValue[] | null> {
+// 通常変数(文字列・数値・真偽値)として見つかればその値、見つからない場合はlist変数として調べその配列、どちらにも該当しなければnullを格納する
+function collectVariables(keys: string[]): Record<string, VariableValue | VariableValue[] | null> {
     return Object.fromEntries(
         keys.map((key) => {
             const value = getVariable(key);
-            if (typeof value === "number") {
+            if (value !== undefined) {
                 return [key, value];
             }
             const list = getVariableList(key);
@@ -125,7 +125,7 @@ function collectVariables(keys: string[]): Record<string, number | VariableValue
 
 // 指定URLへPower AutomateのHTTP Webhookトリガーが受け取れる形式でJSONをPOST送信する(暗号化は行わない)
 // preferredUsername(起動URLのクエリパラメータ)が未設定の場合は、ユーザーを特定できないため送信を中断する
-// variablesを指定すると、そのkeyに対応するnumber変数・list変数の値を送信データに追加できる
+// variablesを指定すると、そのkeyに対応する通常変数(文字列・数値・真偽値)・list変数の値を送信データに追加できる
 export async function sendGameResultWithPowerAutomate(url: string, variables?: string[]): Promise<void> {
     if (!preferredUsername) {
         console.error("[ERROR] preferredUsernameが未設定のため、Power Automateへのゲーム結果送信を中断しました");
