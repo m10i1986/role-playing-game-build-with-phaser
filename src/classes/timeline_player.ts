@@ -13,6 +13,7 @@ import {
     clearVariableList,
     decrementVariable,
     evaluateCondition,
+    getVariable,
     incrementVariable,
     interpolateVariables,
     popVariableList,
@@ -691,6 +692,144 @@ export class TimelinePlayer {
         this.scene.input.keyboard?.on("keydown", keydownHandler);
     }
 
+    // 複数行テキスト入力UIをセット
+    // 同keyの変数値が既に存在する場合はそれを初期表示値として優先する(再入力時に前回値を修正できるようにするため)
+    // 実際の文字入力は透明なHTML textareaに任せ、IME(日本語入力)をブラウザ標準機能でそのまま使えるようにする
+    private setTextInput(
+        key: string,
+        defaultValue: string | undefined,
+        maxLength: number | undefined,
+        placeholder: string | undefined,
+    ) {
+        this.hit_area.disableInteractive(); // hitAreaのクリックを無効化
+
+        const canvas = this.scene.game.canvas;
+        const { width, height } = canvas;
+
+        const existing = getVariable(key);
+        const initialText = existing !== undefined ? String(existing) : (defaultValue ?? "");
+
+        const created: Phaser.GameObjects.GameObject[] = [];
+
+        const boxWidth = width - 160;
+        const boxHeight = 160;
+        const boxY = height / 2 - 60;
+
+        // 入力欄の背景ボックス
+        const inputBox = new Phaser.GameObjects.Rectangle(
+            this.scene,
+            width / 2,
+            boxY,
+            boxWidth,
+            boxHeight,
+            0x000000,
+        ).setStrokeStyle(1, 0xffffff);
+        this.ui_layer.add(inputBox);
+        created.push(inputBox);
+
+        // 入力テキスト(複数行・折返し表示。実体はtextareaのvalueを反映するだけの表示用)
+        const inputDisplay = new Phaser.GameObjects.Text(this.scene, width / 2, boxY, "", {
+            fontSize: "16px",
+            color: "#ffffff",
+            wordWrap: { width: boxWidth - 40 },
+            ...this.text_style,
+        }).setOrigin(0.5);
+        this.ui_layer.add(inputDisplay);
+        created.push(inputDisplay);
+
+        const placeholderColor = "#888888";
+        const textColor = "#ffffff";
+        const refreshDisplay = (text: string) => {
+            if (text === "") {
+                inputDisplay.setColor(placeholderColor);
+                inputDisplay.setText(placeholder ?? "");
+            } else {
+                inputDisplay.setColor(textColor);
+                inputDisplay.setText(text);
+            }
+        };
+        refreshDisplay(initialText);
+
+        // 決定ボタン
+        const decideY = boxY + boxHeight / 2 + 40;
+        const decideButton = this.createHoverButton(width / 2, decideY, 160, 40, 0x000000, 0x333333);
+        created.push(decideButton);
+        created.push(this.createButtonLabel(width / 2, decideY, "決定"));
+
+        // 実入力を受け持つ透明なtextarea(IMEはブラウザ標準機能にそのまま任せる)
+        const textarea = document.createElement("textarea");
+        textarea.value = initialText;
+        if (maxLength !== undefined) {
+            textarea.maxLength = maxLength;
+        }
+        textarea.style.position = "fixed";
+        textarea.style.opacity = "0";
+        textarea.style.resize = "none";
+        textarea.style.border = "none";
+        textarea.style.outline = "none";
+        textarea.style.padding = "0";
+        textarea.style.zIndex = "1000";
+        document.body.appendChild(textarea);
+
+        // canvasの表示位置・スケールに合わせてtextareaを重ねる(CSSでcanvasが拡縮されていても位置がずれないようにする)
+        const syncPosition = () => {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = rect.width / width;
+            const scaleY = rect.height / height;
+            textarea.style.left = `${rect.left + (width / 2 - boxWidth / 2) * scaleX}px`;
+            textarea.style.top = `${rect.top + (boxY - boxHeight / 2) * scaleY}px`;
+            textarea.style.width = `${boxWidth * scaleX}px`;
+            textarea.style.height = `${boxHeight * scaleY}px`;
+        };
+        syncPosition();
+        textarea.focus();
+
+        window.addEventListener("resize", syncPosition);
+
+        // このメソッドで生成した全GameObject・textarea・イベントリスナーを破棄する
+        const cleanup = () => {
+            for (const obj of created) {
+                obj.destroy();
+            }
+            window.removeEventListener("resize", syncPosition);
+            textarea.removeEventListener("input", inputHandler);
+            textarea.removeEventListener("keydown", keydownHandler);
+            textarea.remove();
+            this.scene.events.off("shutdown", cleanup);
+        };
+        // シーンが途中で破棄された場合でもtextareaが残留しないようにする
+        this.scene.events.once("shutdown", cleanup);
+
+        // 決定処理(決定ボタン押下 / Ctrl+Enter・Cmd+Enter共通)
+        const confirm = () => {
+            const finalValue = textarea.value;
+            setVariable(key, finalValue);
+            recordAnswer("input_text", key, finalValue);
+            cleanup();
+            this.hit_area.setInteractive({ useHandCursor: true });
+            this.next();
+        };
+
+        decideButton.on("pointerdown", () => {
+            confirm();
+        });
+
+        // textareaの入力内容をPhaser側の表示テキストへ反映(IME変換中の文字も含めそのまま表示)
+        const inputHandler = () => {
+            refreshDisplay(textarea.value);
+        };
+        textarea.addEventListener("input", inputHandler);
+
+        // Ctrl+Enter/Cmd+Enterで決定(IME変換確定のEnterと区別するためisComposing中は無視する)
+        const keydownHandler = (event: KeyboardEvent) => {
+            if (event.key === "Enter" && (event.ctrlKey || event.metaKey) && !event.isComposing) {
+                event.preventDefault();
+                confirm();
+            }
+        };
+        textarea.addEventListener("keydown", keydownHandler);
+    }
+
     private showWebLink(url: string, text: string | undefined, target: string | undefined = "_blank") {
         // 既存のWebリンクボックスがあれば削除
         this.hideWebLink();
@@ -1009,6 +1148,15 @@ export class TimelinePlayer {
                     timeline_event.max,
                     timeline_event.defaultValue,
                     timeline_event.step ?? 1,
+                );
+                break;
+
+            case EventTypeEnum.InputText: // 複数行テキスト入力イベント
+                this.setTextInput(
+                    timeline_event.key,
+                    timeline_event.defaultValue,
+                    timeline_event.maxLength,
+                    timeline_event.placeholder,
                 );
                 break;
 

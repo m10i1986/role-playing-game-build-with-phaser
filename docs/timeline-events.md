@@ -597,6 +597,49 @@
 
 ---
 
+## InputText / `input_text`（複数行テキスト入力）
+
+複数行のテキスト入力欄と「決定」ボタンからなるテキスト入力UIを表示します。決定した値は変数として保存され、その後のダイアログや条件分岐で利用できます。同じ`key`に既存の変数値が設定されている場合はそれを初期表示値として使うため、一度入力した内容を後から表示し直して修正できます。
+
+| プロパティ | 型 | 必須 | 説明 |
+| --- | --- | --- | --- |
+| `key` | string | ○ | 入力値の保存先変数名 |
+| `defaultValue` | string | 任意 | 初期値（省略時は空文字。同`key`の既存変数値があればそちらを優先） |
+| `maxLength` | number | 任意 | 最大文字数（未設定時は無制限） |
+| `placeholder` | string | 任意 | 未入力時に表示するプレースホルダー文字列 |
+
+```ts
+{ event: EventTypeEnum.SetDialog, text: "このゲームの感想を入力してください" },
+{
+    event: EventTypeEnum.InputText,
+    key: "feedback_text",
+    placeholder: "ここに感想を入力(Ctrl+Enterで決定)",
+    maxLength: 200,
+},
+{ event: EventTypeEnum.ClearDialog },
+{ event: EventTypeEnum.SetDialog, text: "入力内容: {{feedback_text}}" },
+{
+    event: EventTypeEnum.Choice,
+    choices: [
+        // 同じkey(feedback_text)でInputTextへ戻ると、既存の変数値が初期表示されるため修正できる
+        { text: "修正する", key: "feedback" },
+        { text: "これで確定する", key: "ending" },
+    ],
+},
+```
+
+操作方法:
+
+- キーボード: 文字キーで追記、`Enter`で改行、`Backspace`で1文字削除、`Ctrl+Enter`（Macは`Cmd+Enter`）または「決定」ボタンで決定
+- 決定時: 入力値をそのまま変数へ保存して次のイベントへ進む
+
+注意点:
+
+- 入力値は回答履歴に記録され、ゲーム結果送信に含まれます
+- 同じ`key`で再度`InputText`を実行すると、前回の入力値が初期表示されます（`Choice`等で同じタイムラインへ戻す分岐を作ることで「後から修正する」フローを実現できます）
+
+---
+
 ## SendGameResultWithPhaserWorks / `send_game_result_with_phaser_works`（ゲーム結果送信・PhaserWorks向け）
 
 起動URLの `resultUrl` が指定されている場合、回答履歴・プレイ時間・`result`（`result_success`/`result_score` から組み立てたゲーム結果）をまとめてPhaserWorksへPOST送信します。`resultUrl` が未指定の場合は何も送信されません。

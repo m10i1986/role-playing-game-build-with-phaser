@@ -3,12 +3,12 @@ import { encryptResultPayload } from "./result_encryption";
 import { getVariable, getVariableList } from "./variable_store";
 
 // 回答の種類
-export type AnswerRecordType = "choice" | "multi_choice" | "sort_order" | "input_number";
+export type AnswerRecordType = "choice" | "multi_choice" | "sort_order" | "input_number" | "input_text";
 
 // 1回分の回答履歴
 export type AnswerRecord = {
     type: AnswerRecordType;
-    key: string; // 回答対象を識別するキー(選択肢の遷移先key、InputNumberの変数keyなど)
+    key: string; // 回答対象を識別するキー(選択肢の遷移先key、InputNumber/InputTextの変数keyなど)
     value: VariableValue | VariableValue[]; // 選択したテキスト・数値・複数選択の配列など
     elapsedMs: number; // ゲーム開始からこの回答までの経過時間(ms)
 };

@@ -27,6 +27,7 @@ export enum EventTypeEnum {
     PushVariableList = "push_variable_list",
     PopVariableList = "pop_variable_list",
     InputNumber = "input_number",
+    InputText = "input_text",
     SendGameResultWithPhaserWorks = "send_game_result_with_phaser_works",
     SendGameResultWithPowerAutomate = "send_game_result_with_power_automate",
     CheckPreferredUsername = "check_preferred_username",
@@ -249,6 +250,16 @@ type InputNumberEvent = {
     step?: number; // +/-ボタン1回あたりの増減量(デフォルト1)
 };
 
+// 複数行テキスト入力イベント
+// 同じkeyで既に変数値が設定されている場合は、それを初期表示値として使う(再入力時の修正に対応)
+type InputTextEvent = {
+    event: EventTypeEnum.InputText;
+    key: string; // 入力値の保存先変数名
+    defaultValue?: string; // 初期値(省略時は空文字。同keyの既存変数値があればそちらを優先)
+    maxLength?: number; // 最大文字数(未設定時は無制限)
+    placeholder?: string; // 未入力時に表示するプレースホルダー文字列
+};
+
 // ゲーム結果送信イベント(結果送信先が設定されていればPhaserWorksへ全データを送信する)
 type SendGameResultWithPhaserWorksEvent = {
     event: EventTypeEnum.SendGameResultWithPhaserWorks;
@@ -305,6 +316,7 @@ export type Timeline = (
     | PushVariableListEvent
     | PopVariableListEvent
     | InputNumberEvent
+    | InputTextEvent
     | SendGameResultWithPhaserWorksEvent
     | SendGameResultWithPowerAutomateEvent
     | CheckPreferredUsernameEvent

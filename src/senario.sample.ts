@@ -257,7 +257,7 @@ export const senarioData: Timelines = {
             event: EventTypeEnum.Choice,
             choices: [
                 { text: "はい(もう一度テスト)", key: "calculation" },
-                { text: "いいえ(次に進む)", key: "ending" },
+                { text: "いいえ(次に進む)", key: "feedback" },
             ],
         },
     ],
@@ -277,7 +277,26 @@ export const senarioData: Timelines = {
             event: EventTypeEnum.Choice,
             choices: [
                 { text: "はい(もう一度テスト)", key: "calculation" },
-                { text: "いいえ(次に進む)", key: "ending" },
+                { text: "いいえ(次に進む)", key: "feedback" },
+            ],
+        },
+    ],
+    feedback: [
+        { event: EventTypeEnum.SetDialog, text: "このゲームの感想を入力してください" },
+        {
+            event: EventTypeEnum.InputText,
+            key: "feedback_text",
+            placeholder: "ここに感想を入力(Ctrl+Enterで決定)",
+            maxLength: 200,
+        },
+        { event: EventTypeEnum.ClearDialog },
+        { event: EventTypeEnum.SetDialog, text: "入力内容: {{feedback_text}}" },
+        {
+            event: EventTypeEnum.Choice,
+            choices: [
+                // 同じkey(feedback_text)でInputTextへ戻ると、既存の変数値が初期表示されるため修正できる
+                { text: "修正する", key: "feedback" },
+                { text: "これで確定する", key: "ending" },
             ],
         },
     ],
