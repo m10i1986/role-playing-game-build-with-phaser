@@ -260,9 +260,10 @@ type InputTextEvent = {
     placeholder?: string; // 未入力時に表示するプレースホルダー文字列
 };
 
-// ゲーム結果送信イベント(結果送信先が設定されていればPhaserWorksへ全データを送信する)
+// ゲーム結果送信イベント(設定されていればPhaserWorksへデータを送信する)
 type SendGameResultWithPhaserWorksEvent = {
     event: EventTypeEnum.SendGameResultWithPhaserWorks;
+    variables?: string[]; // 追加で送信したい変数のkey一覧(number変数・list変数どちらのkeyも指定可能)
 };
 
 // ゲーム結果送信イベント(指定URLへPower AutomateのHTTP Webhookトリガーが受け取れる形式でPOST送信する)
