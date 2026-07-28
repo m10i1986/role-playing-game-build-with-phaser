@@ -258,6 +258,7 @@ type InputTextEvent = {
     defaultValue?: string; // 初期値(省略時は空文字。同keyの既存変数値があればそちらを優先)
     maxLength?: number; // 最大文字数(未設定時は無制限)
     placeholder?: string; // 未入力時に表示するプレースホルダー文字列
+    required?: boolean; // trueの場合は入力必須(空文字・空白のみでは決定できず警告を表示する)
 };
 
 // ゲーム結果送信イベント(設定されていればPhaserWorksへデータを送信する)

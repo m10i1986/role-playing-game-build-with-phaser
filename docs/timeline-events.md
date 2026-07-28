@@ -607,6 +607,7 @@
 | `defaultValue` | string | 任意 | 初期値（省略時は空文字。同`key`の既存変数値があればそちらを優先） |
 | `maxLength` | number | 任意 | 最大文字数（未設定時は無制限） |
 | `placeholder` | string | 任意 | 未入力時に表示するプレースホルダー文字列 |
+| `required` | boolean | 任意 | `true`で入力必須（未入力のままでは決定できず警告を表示。未設定時は`false`） |
 
 ```ts
 { event: EventTypeEnum.SetDialog, text: "このゲームの感想を入力してください" },
@@ -615,6 +616,7 @@
     key: "feedback_text",
     placeholder: "ここに感想を入力(Ctrl+Enterで決定)",
     maxLength: 200,
+    required: true, // 未入力では次へ進めない
 },
 { event: EventTypeEnum.ClearDialog },
 { event: EventTypeEnum.SetDialog, text: "入力内容: {{feedback_text}}" },
@@ -632,10 +634,12 @@
 
 - キーボード: 文字キーで追記、`Enter`で改行、`Backspace`で1文字削除、`Ctrl+Enter`（Macは`Cmd+Enter`）または「決定」ボタンで決定
 - 決定時: 入力値をそのまま変数へ保存して次のイベントへ進む
+- `required: true`かつ未入力（空文字・空白のみ）で決定した場合: 決定ボタンの下に「入力してください」と警告を表示し、次のイベントへ進まずに入力欄へフォーカスを戻します。文字が入力されると警告は自動的に消えます
 
 注意点:
 
 - 入力値は回答履歴に記録され、ゲーム結果送信に含まれます
+- `required: true`の判定は`trim()`後の値で行うため、スペースや改行のみの入力は「未入力」として扱われます（保存される値自体は`trim()`されず入力されたままです）
 - 同じ`key`で再度`InputText`を実行すると、前回の入力値が初期表示されます（`Choice`等で同じタイムラインへ戻す分岐を作ることで「後から修正する」フローを実現できます）
 
 ---

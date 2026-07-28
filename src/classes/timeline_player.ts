@@ -700,6 +700,7 @@ export class TimelinePlayer {
         defaultValue: string | undefined,
         maxLength: number | undefined,
         placeholder: string | undefined,
+        required: boolean,
     ) {
         this.hit_area.disableInteractive(); // hitAreaのクリックを無効化
 
@@ -756,6 +757,17 @@ export class TimelinePlayer {
         created.push(decideButton);
         created.push(this.createButtonLabel(width / 2, decideY, "決定"));
 
+        // 入力必須時の警告テキスト(未入力のまま決定しようとした場合のみ表示する)
+        const warningText = new Phaser.GameObjects.Text(this.scene, width / 2, decideY + 40, "入力してください", {
+            fontSize: "16px",
+            color: "#ff6666",
+            ...this.text_style,
+        })
+            .setOrigin(0.5)
+            .setVisible(false);
+        this.ui_layer.add(warningText);
+        created.push(warningText);
+
         // 実入力を受け持つ透明なtextarea(IMEはブラウザ標準機能にそのまま任せる)
         const textarea = document.createElement("textarea");
         textarea.value = initialText;
@@ -803,6 +815,12 @@ export class TimelinePlayer {
         // 決定処理(決定ボタン押下 / Ctrl+Enter・Cmd+Enter共通)
         const confirm = () => {
             const finalValue = textarea.value;
+            // 入力必須の場合、空文字・空白のみの入力は決定させず警告を表示して入力欄へ戻す
+            if (required && finalValue.trim() === "") {
+                warningText.setVisible(true);
+                textarea.focus();
+                return;
+            }
             setVariable(key, finalValue);
             recordAnswer("input_text", key, finalValue);
             cleanup();
@@ -817,6 +835,10 @@ export class TimelinePlayer {
         // textareaの入力内容をPhaser側の表示テキストへ反映(IME変換中の文字も含めそのまま表示)
         const inputHandler = () => {
             refreshDisplay(textarea.value);
+            // 入力が行われたら警告を消す(修正操作中に警告が出続けないようにする)
+            if (warningText.visible && textarea.value.trim() !== "") {
+                warningText.setVisible(false);
+            }
         };
         textarea.addEventListener("input", inputHandler);
 
@@ -1157,6 +1179,7 @@ export class TimelinePlayer {
                     timeline_event.defaultValue,
                     timeline_event.maxLength,
                     timeline_event.placeholder,
+                    timeline_event.required ?? false,
                 );
                 break;
 
