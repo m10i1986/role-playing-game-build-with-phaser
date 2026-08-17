@@ -45,11 +45,18 @@ export class MessageDialog extends Phaser.GameObjects.Container {
         );
         this.add(this.box); // Containerへの追加
 
+        // BBCodeTextの[u]タグはデフォルトスタイルのunderline設定を有効化するだけのトグルであり、
+        // underlineThicknessをベース側で指定しないと太さ0（非表示）になるため、共通のデフォルト値を用意する
+        const default_underline_style: BBCodeText.TextStyle = {
+            underline: { color: "#ffffff", thickness: 2, offset: 2 },
+        };
+
         // 折り返し設定を追加した会話テキスト用のTextStyleを作成
         // wrap.mode: 'char'を指定することで日本語のような単語区切りのない言語でも折り返しが有効になる
         // text_styleはPhaser標準のTextStyle型で受け取っているが、実際にはfontFamily/fontSize等の
         // BBCodeText.TextStyleと共通のプロパティのみが渡される想定のためキャストする
         const dialog_box_text_style = {
+            ...default_underline_style,
             ...(text_style as BBCodeText.TextStyle),
             wrap: { mode: "char" as const, width: width - padding * 2 },
         };
@@ -73,13 +80,10 @@ export class MessageDialog extends Phaser.GameObjects.Container {
         this.add(this.actor_name_box); // Containerへの追加
 
         // 名前テキスト用のBBCodeTextを作成
-        this.actor_name_text = new BBCodeText(
-            this.scene,
-            x - width / 2 + padding,
-            y - height / 2 - margin - 20,
-            "",
-            text_style as BBCodeText.TextStyle,
-        );
+        this.actor_name_text = new BBCodeText(this.scene, x - width / 2 + padding, y - height / 2 - margin - 20, "", {
+            ...default_underline_style,
+            ...(text_style as BBCodeText.TextStyle),
+        });
         this.actor_name_text.setOrigin(0, 0.5); // 原点を左中に設定
         this.actor_name_text.setVisible(false); // 初期状態では非表示
         this.add(this.actor_name_text); // Containerへの追加
