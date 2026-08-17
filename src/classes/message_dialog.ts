@@ -1,4 +1,5 @@
 import * as Phaser from "phaser";
+import BBCodeText from "phaser4-rex-plugins/plugins/bbcodetext.js";
 
 export type MessageDialogConfig = {
     x: number;
@@ -7,13 +8,16 @@ export type MessageDialogConfig = {
     height: number;
     padding?: number;
     margin?: number;
+    // TimelinePlayer等の通常Textとスタイルオブジェクトを共有しているため、
+    // Phaser標準のTextStyleを受け取りBBCodeText.TextStyleとして扱う（fontFamily/fontSize等の共通プロパティのみ使用）
     text_style?: Phaser.Types.GameObjects.Text.TextStyle;
 };
 
 // Phaser.GameObjects.Containerを継承してMessageDialogを作成
+// 会話テキストはBBCodeText（[b]太字[/b], [u]下線[/u] 等のタグ）で部分装飾に対応する
 export class MessageDialog extends Phaser.GameObjects.Container {
     private box: Phaser.GameObjects.Rectangle;
-    private text: Phaser.GameObjects.Text;
+    private text: BBCodeText;
 
     // Phaser 4.2.1時点でRectangle shapeのstroke描画に対角線が入るバグがあるため、
     // actor_name_boxのみGraphicsで矩形を描画する
@@ -23,7 +27,7 @@ export class MessageDialog extends Phaser.GameObjects.Container {
     private actor_name_box_height: number;
     private actor_name_box_fill_color: number = 0x000000;
     private actor_name_box_fill_alpha: number = 1.0;
-    private actor_name_text: Phaser.GameObjects.Text;
+    private actor_name_text: BBCodeText;
 
     private padding: number;
 
@@ -41,14 +45,17 @@ export class MessageDialog extends Phaser.GameObjects.Container {
         );
         this.add(this.box); // Containerへの追加
 
-        // wordWrap（折り返し設定）を追加した会話テキスト用のTextStyleを作成
+        // 折り返し設定を追加した会話テキスト用のTextStyleを作成
+        // wrap.mode: 'char'を指定することで日本語のような単語区切りのない言語でも折り返しが有効になる
+        // text_styleはPhaser標準のTextStyle型で受け取っているが、実際にはfontFamily/fontSize等の
+        // BBCodeText.TextStyleと共通のプロパティのみが渡される想定のためキャストする
         const dialog_box_text_style = {
-            ...text_style,
-            wordWrap: { width: width - padding * 2, useAdvancedWrap: true }, // useAdvancedWrapをtrueにすることで日本語の折り返しが有効になる
+            ...(text_style as BBCodeText.TextStyle),
+            wrap: { mode: "char" as const, width: width - padding * 2 },
         };
 
-        // 会話テキスト用のTextを作成
-        this.text = new Phaser.GameObjects.Text(
+        // 会話テキスト用のBBCodeTextを作成（[b]太字[/b], [u]下線[/u]等のタグで部分装飾可能）
+        this.text = new BBCodeText(
             this.scene,
             x - width / 2 + padding,
             y - height / 2 + padding,
@@ -65,13 +72,13 @@ export class MessageDialog extends Phaser.GameObjects.Container {
         this.actor_name_box.setVisible(false); // 初期状態では非表示
         this.add(this.actor_name_box); // Containerへの追加
 
-        // 名前テキスト用のTextを作成
-        this.actor_name_text = new Phaser.GameObjects.Text(
+        // 名前テキスト用のBBCodeTextを作成
+        this.actor_name_text = new BBCodeText(
             this.scene,
             x - width / 2 + padding,
             y - height / 2 - margin - 20,
             "",
-            text_style,
+            text_style as BBCodeText.TextStyle,
         );
         this.actor_name_text.setOrigin(0, 0.5); // 原点を左中に設定
         this.actor_name_text.setVisible(false); // 初期状態では非表示
@@ -134,19 +141,22 @@ export class MessageDialog extends Phaser.GameObjects.Container {
     }
 
     // MessageDialogクラスに追加するメソッド
+    // BBCodeタグ（[b][/b]等）を含むtextでも、タグが壊れないよう可視文字単位でタイピング表示する
     public setTextWithTypingEffect(text: string, delay: number = 100): Phaser.Time.TimerEvent {
-        this.text.setText(""); // 初期化
+        this.text.setText(text); // タグを解析させるため一旦全文をセット
+        const plain_chars = [...this.text.getPlainText()]; // 絵文字を正しく分割
+        this.text.setText(""); // 表示は空文字から開始
         this.box.setVisible(true);
         this.text.setVisible(true);
 
-        const chars = [...text]; // 絵文字を正しく分割
         let index = 0;
         const timer = this.scene.time.addEvent({
             delay: delay,
             callback: () => {
-                this.text.setText(chars.slice(0, index + 1).join(""));
                 index++;
-                if (index >= chars.length) {
+                // 可視文字数indexまでを、タグを保ったまま部分表示する
+                this.text.setText(this.text.getSubString(text, 0, index));
+                if (index >= plain_chars.length) {
                     timer.destroy(); // タイマーを破棄
                 }
             },
