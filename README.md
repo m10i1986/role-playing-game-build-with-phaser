@@ -32,8 +32,8 @@ Phaserで作られたロールプレイングゲームのテンプレートで�
    pnpm install
    ```
 
-3. src/senario.ts を作成し、シナリオを記述します。
-   - src/senario.ts が存在しない場合、`pnpm dev` / `pnpm build` 実行時に src/senario.sample.ts が自動的にコピーされ、サンプルシナリオで動作確認できます。
+3. src/scenario.ts を作成し、シナリオを記述します。
+   - src/scenario.ts が存在しない場合、`pnpm dev` / `pnpm build` 実行時に src/scenario.sample.ts が自動的にコピーされ、サンプルシナリオで動作確認できます。
 
 4. 開発サーバーを起動します。
    ```bash
