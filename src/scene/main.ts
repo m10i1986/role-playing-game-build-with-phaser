@@ -1,7 +1,7 @@
 import * as Phaser from "phaser";
 import { MessageDialog, type MessageDialogConfig } from "../classes/message_dialog";
 import { TimelinePlayer } from "../classes/timeline_player";
-import { senarioData } from "../senario";
+import { scenarioData } from "../scenario";
 import type { Timeline } from "../types/timeline";
 
 type MainSceneInitData = {
@@ -27,7 +27,7 @@ export class MainScene extends Phaser.Scene {
             return;
         }
 
-        this.timeline = senarioData[id];
+        this.timeline = scenarioData[id];
     }
 
     create() {
