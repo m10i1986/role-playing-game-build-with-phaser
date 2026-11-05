@@ -20,7 +20,7 @@ export class MainScene extends Phaser.Scene {
         // this.scene.start()の第2引数に指定されたオブジェクトがdataに渡される
         const id = data.id || "start";
 
-        if (!(id in senarioData)) {
+        if (!(id in scenarioData)) {
             console.error(`[ERROR] タイムラインID[${id}]は登録されていません`);
             // 登録されていないタイムラインIDが指定されていたらタイトルシーンに遷移する
             this.scene.start("title");
