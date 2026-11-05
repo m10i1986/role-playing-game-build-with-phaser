@@ -19,4 +19,4 @@ fi
 git fetch upstream
 git merge upstream/main
 
-sed -i -E 's/^src\/senario\.ts$/src\/senario.sample.ts/' .gitignore
+sed -i -E 's/^src\/scenario\.ts$/src\/scenario.sample.ts/' .gitignore
