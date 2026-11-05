@@ -14,7 +14,7 @@ export const musicFiles: PreloadFileDict = {
     bgm01: "assets/sound/music/bgm01.mp3",
 };
 
-export const senarioData: Timelines = {
+export const scenarioData: Timelines = {
     start: [
         { event: EventTypeEnum.ClearForeground },
         { event: EventTypeEnum.ClearBackground },
