@@ -1,10 +1,10 @@
 # Timeline イベントリファレンス（EventTypeEnum）
 
-シナリオ（`senarioData`）は Timeline（イベントの配列）の辞書として定義し、`TimelinePlayer` が先頭から順に実行します。本書は `EventTypeEnum` で定義された各イベントの使い方をまとめたリファレンスです。
+シナリオ（`scenarioData`）は Timeline（イベントの配列）の辞書として定義し、`TimelinePlayer` が先頭から順に実行します。本書は `EventTypeEnum` で定義された各イベントの使い方をまとめたリファレンスです。
 
 - enum 定義: [src/types/timeline.ts](../src/types/timeline.ts)
 - 実行処理: [src/classes/timeline_player.ts](../src/classes/timeline_player.ts)
-- シナリオ記述例: [src/senario.sample.ts](../src/senario.sample.ts)
+- シナリオ記述例: [src/scenario.sample.ts](../src/scenario.sample.ts)
 
 ## 基本の仕組み
 
@@ -199,7 +199,7 @@
 
 | プロパティ | 型 | 必須 | 説明 |
 | --- | --- | --- | --- |
-| `key` | string | ○ | 遷移先のタイムラインキー（`senarioData` のキー名） |
+| `key` | string | ○ | 遷移先のタイムラインキー（`scenarioData` のキー名） |
 
 ```ts
 { event: EventTypeEnum.TimelineTransition, key: "unit02" },
@@ -716,7 +716,7 @@
 ## シナリオ記述の全体例
 
 ```ts
-export const senarioData: Timelines = {
+export const scenarioData: Timelines = {
     start: [
         { event: EventTypeEnum.ClearForeground },
         { event: EventTypeEnum.SetBackground, key: "sample01", effect: "fadein" },
