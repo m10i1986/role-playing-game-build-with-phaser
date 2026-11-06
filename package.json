@@ -4,9 +4,9 @@
     "version": "0.0.0",
     "type": "module",
     "scripts": {
-        "predev": "node scripts/ensure-senario.mjs",
+        "predev": "node scripts/ensure-scenario.mjs",
         "dev": "vite",
-        "prebuild": "node scripts/ensure-senario.mjs",
+        "prebuild": "node scripts/ensure-scenario.mjs",
         "build": "tsc && vite build",
         "preview": "vite preview",
         "format": "biome format --write .",
