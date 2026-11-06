@@ -304,9 +304,7 @@ export const scenarioData: Timelines = {
         // 結果送信先が設定されていればPhaserWorksへゲーム結果(回答履歴・プレイ時間・result/score)を送信する
         {
             event: EventTypeEnum.SendGameResultWithPhaserWorks,
-            variables: [
-                "feedback_text"
-            ]
+            variables: ["feedback_text"],
         },
         // Power AutomateのHTTP Webhookトリガーへ直接POSTする場合の例(起動URLにpreferredUsernameの指定が必要)
         // { event: EventTypeEnum.SendGameResultWithPowerAutomate, url: "https://example.com/webhook" },
