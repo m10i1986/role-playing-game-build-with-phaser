@@ -1,5 +1,5 @@
 import * as Phaser from "phaser";
-import { illustrationFiles, musicFiles } from "../senario";
+import { illustrationFiles, musicFiles } from "../scenario";
 
 export class LoadingScene extends Phaser.Scene {
     constructor() {
