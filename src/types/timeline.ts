@@ -31,7 +31,7 @@ export enum EventTypeEnum {
     SendGameResultWithPhaserWorks = "send_game_result_with_phaser_works",
     SendGameResultWithPowerAutomate = "send_game_result_with_power_automate",
     CheckPreferredUsername = "check_preferred_username",
-    CheckCondition = "check_condition",
+    ConditionalAction = "conditional_action",
 }
 
 // 変数として扱える値の型
@@ -282,12 +282,37 @@ type CheckPreferredUsernameEvent = {
     ngActorName?: string;
 };
 
-// 変数条件判定イベント(conditionの判定結果に応じて遷移先タイムラインを分岐する)
-type CheckConditionEvent = {
-    event: EventTypeEnum.CheckCondition;
+// アクション(ConditionalActionのtrueAction/falseActionで実行する、クリック待ち・入力待ちを伴わない即時系イベント)
+// 遷移系(TimelineTransition/SceneTransition)はシーンが切り替わるため、複数指定する場合は末尾に置くこと(以降のアクションは実行されない)
+export type Action =
+    | ClearDialogEvent
+    | SetBackgroundEvent
+    | ClearBackgroundEvent
+    | SetFrameEvent
+    | AddForegroundEvent
+    | ClearForegroundEvent
+    | TimelineTransitionEvent
+    | SceneTransitionEvent
+    | ShowWebLinkEvent
+    | HideWebLinkEvent
+    | PlaySoundEvent
+    | ClearSoundEvent
+    | SetVariableEvent
+    | ClearVariableEvent
+    | IncrementVariableEvent
+    | DecrementVariableEvent
+    | SetVariableListEvent
+    | ClearVariableListEvent
+    | PushVariableListEvent
+    | PopVariableListEvent;
+
+// 条件付きアクションイベント(conditionの判定結果に応じたアクションを順に実行する)
+// 遷移を伴うアクションが実行されなかった場合(アクション省略時を含む)は、そのまま次のイベントへ進む
+type ConditionalActionEvent = {
+    event: EventTypeEnum.ConditionalAction;
     condition: VariableCondition;
-    trueKey: string; // 判定結果がtrueの場合の遷移先タイムラインキー
-    falseKey: string; // 判定結果がfalseの場合の遷移先タイムラインキー
+    trueAction?: Action[]; // 判定結果がtrueの場合に順に実行するアクション
+    falseAction?: Action[]; // 判定結果がfalseの場合に順に実行するアクション
 };
 
 // Timelineはイベントの配列
@@ -322,5 +347,5 @@ export type Timeline = (
     | SendGameResultWithPhaserWorksEvent
     | SendGameResultWithPowerAutomateEvent
     | CheckPreferredUsernameEvent
-    | CheckConditionEvent
+    | ConditionalActionEvent
 )[];

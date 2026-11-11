@@ -1,5 +1,12 @@
 import * as Phaser from "phaser";
-import { type Choice, EventTypeEnum, type MultiChoice, type SortOrderItem, type Timeline } from "../types/timeline";
+import {
+    type Action,
+    type Choice,
+    EventTypeEnum,
+    type MultiChoice,
+    type SortOrderItem,
+    type Timeline,
+} from "../types/timeline";
 import {
     hasPreferredUsername,
     recordAnswer,
@@ -982,6 +989,102 @@ export class TimelinePlayer {
         }
     }
 
+    // アクション(即時系イベント)を1件実行する
+    // シーン遷移を伴う場合はtrueを返す(シーンが切り替わるため、以降のアクション・イベントは実行しない)
+    private executeAction(action: Action): boolean {
+        switch (action.event) {
+            case EventTypeEnum.ClearDialog: // ダイアログ削除イベント
+                this.message_dialog.clearActorNameText();
+                this.message_dialog.clearText();
+                return false;
+
+            case EventTypeEnum.SetBackground: // 背景設定イベント
+                this.setBackground(action.key, action.x, action.y, action.effect);
+                return false;
+
+            case EventTypeEnum.ClearBackground: // 背景クリアイベント
+                this.clearBackground();
+                return false;
+
+            case EventTypeEnum.SetFrame: // 画面枠設定イベント
+                this.setFrame(action.key);
+                return false;
+
+            case EventTypeEnum.AddForeground: // 前景追加イベント
+                this.addForeground(action.key, action.x, action.y);
+                return false;
+
+            case EventTypeEnum.ClearForeground: // 前景クリアイベント
+                this.clearForeground();
+                return false;
+
+            case EventTypeEnum.TimelineTransition: // タイムライン遷移イベント
+                // シーンをリスタートし、指定のタイムラインを実行する
+                // restart()の引数がシーンのinit()の引数に渡される
+                this.scene.scene.restart({ id: action.key });
+                return true;
+
+            case EventTypeEnum.SceneTransition: // シーン遷移イベント
+                // 指定のシーンに遷移する
+                // start()の第2引数がシーンのinit()の引数に渡される
+                this.scene.scene.start(action.key, action.data);
+                return true;
+
+            case EventTypeEnum.ShowWebLink: // Webリンク表示イベント
+                this.showWebLink(action.url, action.text, action.target);
+                return false;
+
+            case EventTypeEnum.HideWebLink: // Webリンククリアイベント
+                this.hideWebLink();
+                return false;
+
+            case EventTypeEnum.PlaySound: // Sound再生イベント
+                this.playSound(action.key, action.loop ?? false);
+                return false;
+
+            case EventTypeEnum.ClearSound: // Soundクリアイベント
+                this.clearSound(action.key);
+                return false;
+
+            case EventTypeEnum.SetVariable: // 変数設定イベント
+                setVariable(action.key, action.value);
+                return false;
+
+            case EventTypeEnum.ClearVariable: // 変数クリアイベント
+                clearVariable(action.key);
+                return false;
+
+            case EventTypeEnum.IncrementVariable: // 数値変数加算イベント
+                incrementVariable(action.key, action.value ?? 1);
+                return false;
+
+            case EventTypeEnum.DecrementVariable: // 数値変数減算イベント
+                decrementVariable(action.key, action.value ?? 1);
+                return false;
+
+            case EventTypeEnum.SetVariableList: // リスト変数設定イベント
+                setVariableList(action.key, action.values);
+                return false;
+
+            case EventTypeEnum.ClearVariableList: // リスト変数クリアイベント
+                clearVariableList(action.key);
+                return false;
+
+            case EventTypeEnum.PushVariableList: // リスト変数末尾追加イベント
+                pushVariableList(action.key, action.value);
+                return false;
+
+            case EventTypeEnum.PopVariableList: {
+                // リスト変数末尾取り出しイベント
+                const popped = popVariableList(action.key);
+                if (popped !== undefined && action.resultKey) {
+                    setVariable(action.resultKey, popped);
+                }
+                return false;
+            }
+        }
+    }
+
     // 次のタイムラインを実行
     private next() {
         if (!this.timeline) {
@@ -1053,47 +1156,30 @@ export class TimelinePlayer {
                 );
                 break;
 
+            // 即時系イベント: アクションとして実行し、遷移を伴わなければすぐに次のタイムラインを実行する
             case EventTypeEnum.ClearDialog: // ダイアログ削除イベント
-                this.message_dialog.clearActorNameText();
-                this.message_dialog.clearText();
-                this.next(); // すぐに次のタイムラインを実行する
-                break;
-
             case EventTypeEnum.SetBackground: // 背景設定イベント
-                this.setBackground(timeline_event.key, timeline_event.x, timeline_event.y, timeline_event.effect);
-                this.next(); // すぐに次のタイムラインを実行する
-                break;
-
             case EventTypeEnum.ClearBackground: // 背景クリアイベント
-                this.clearBackground();
-                this.next(); // すぐに次のタイムラインを実行する
-                break;
-
             case EventTypeEnum.SetFrame: // 画面枠設定イベント
-                this.setFrame(timeline_event.key);
-                this.next(); // すぐに次のタイムラインを実行する
-                break;
-
             case EventTypeEnum.AddForeground: // 前景追加イベント
-                this.addForeground(timeline_event.key, timeline_event.x, timeline_event.y);
-                this.next(); // すぐに次のタイムラインを実行する
-                break;
-
             case EventTypeEnum.ClearForeground: // 前景クリアイベント
-                this.clearForeground();
-                this.next(); // すぐに次のタイムラインを実行する
-                break;
-
             case EventTypeEnum.TimelineTransition: // タイムライン遷移イベント
-                // シーンをリスタートし、指定のタイムラインを実行する
-                // restart()の引数がシーンのinit()の引数に渡される
-                this.scene.scene.restart({ id: timeline_event.key });
-                break;
-
             case EventTypeEnum.SceneTransition: // シーン遷移イベント
-                // 指定のシーンに遷移する
-                // start()の第2引数がシーンのinit()の引数に渡される
-                this.scene.scene.start(timeline_event.key, timeline_event.data);
+            case EventTypeEnum.ShowWebLink: // Webリンク表示イベント
+            case EventTypeEnum.HideWebLink: // Webリンククリアイベント
+            case EventTypeEnum.PlaySound: // Sound再生イベント
+            case EventTypeEnum.ClearSound: // Soundクリアイベント
+            case EventTypeEnum.SetVariable: // 変数設定イベント
+            case EventTypeEnum.ClearVariable: // 変数クリアイベント
+            case EventTypeEnum.IncrementVariable: // 数値変数加算イベント
+            case EventTypeEnum.DecrementVariable: // 数値変数減算イベント
+            case EventTypeEnum.SetVariableList: // リスト変数設定イベント
+            case EventTypeEnum.ClearVariableList: // リスト変数クリアイベント
+            case EventTypeEnum.PushVariableList: // リスト変数末尾追加イベント
+            case EventTypeEnum.PopVariableList: // リスト変数末尾取り出しイベント
+                if (!this.executeAction(timeline_event)) {
+                    this.next(); // すぐに次のタイムラインを実行する
+                }
                 break;
 
             case EventTypeEnum.Choice: // 選択肢イベント
@@ -1122,71 +1208,6 @@ export class TimelinePlayer {
                     timeline_event.labelStyle ?? "number",
                 );
                 break;
-
-            case EventTypeEnum.ShowWebLink: // Webリンク表示イベント
-                this.showWebLink(timeline_event.url, timeline_event.text, timeline_event.target);
-                this.next(); // すぐに次のタイムラインを実行する
-                break;
-
-            case EventTypeEnum.HideWebLink: // Webリンククリアイベント
-                this.hideWebLink();
-                this.next(); // すぐに次のタイムラインを実行する
-                break;
-
-            case EventTypeEnum.PlaySound: // Sound再生イベント
-                this.playSound(timeline_event.key, timeline_event.loop ?? false);
-                this.next(); // すぐに次のタイムラインを実行する
-                break;
-
-            case EventTypeEnum.ClearSound: // Soundクリアイベント
-                this.clearSound(timeline_event.key);
-                this.next(); // すぐに次のタイムラインを実行する
-                break;
-
-            case EventTypeEnum.SetVariable: // 変数設定イベント
-                setVariable(timeline_event.key, timeline_event.value);
-                this.next(); // すぐに次のタイムラインを実行する
-                break;
-
-            case EventTypeEnum.ClearVariable: // 変数クリアイベント
-                clearVariable(timeline_event.key);
-                this.next(); // すぐに次のタイムラインを実行する
-                break;
-
-            case EventTypeEnum.IncrementVariable: // 数値変数加算イベント
-                incrementVariable(timeline_event.key, timeline_event.value ?? 1);
-                this.next(); // すぐに次のタイムラインを実行する
-                break;
-
-            case EventTypeEnum.DecrementVariable: // 数値変数減算イベント
-                decrementVariable(timeline_event.key, timeline_event.value ?? 1);
-                this.next(); // すぐに次のタイムラインを実行する
-                break;
-
-            case EventTypeEnum.SetVariableList: // リスト変数設定イベント
-                setVariableList(timeline_event.key, timeline_event.values);
-                this.next(); // すぐに次のタイムラインを実行する
-                break;
-
-            case EventTypeEnum.ClearVariableList: // リスト変数クリアイベント
-                clearVariableList(timeline_event.key);
-                this.next(); // すぐに次のタイムラインを実行する
-                break;
-
-            case EventTypeEnum.PushVariableList: // リスト変数末尾追加イベント
-                pushVariableList(timeline_event.key, timeline_event.value);
-                this.next(); // すぐに次のタイムラインを実行する
-                break;
-
-            case EventTypeEnum.PopVariableList: {
-                // リスト変数末尾取り出しイベント
-                const popped = popVariableList(timeline_event.key);
-                if (popped !== undefined && timeline_event.resultKey) {
-                    setVariable(timeline_event.resultKey, popped);
-                }
-                this.next(); // すぐに次のタイムラインを実行する
-                break;
-            }
 
             case EventTypeEnum.InputNumber: // 数値入力イベント
                 this.setNumberInput(
@@ -1246,12 +1267,18 @@ export class TimelinePlayer {
                 }
                 break;
 
-            case EventTypeEnum.CheckCondition: {
-                // 変数条件判定イベント: 判定結果に応じて遷移先タイムラインキーを出し分け、シーンをリスタートする
+            case EventTypeEnum.ConditionalAction: {
+                // 条件付きアクションイベント: 判定結果に応じたアクションを順に実行する
                 const condition_result = evaluateCondition(timeline_event.condition);
-                this.scene.scene.restart({
-                    id: condition_result ? timeline_event.trueKey : timeline_event.falseKey,
-                });
+                const actions = (condition_result ? timeline_event.trueAction : timeline_event.falseAction) ?? [];
+                for (const action of actions) {
+                    if (this.executeAction(action)) {
+                        // 遷移系アクションでシーンが切り替わるため、以降のアクション・イベントは実行しない
+                        return;
+                    }
+                }
+                // 遷移を伴わなかった(アクション省略時を含む)場合は、次のタイムラインを実行する
+                this.next();
                 break;
             }
 

@@ -81,7 +81,7 @@
 | `SendGameResultWithPhaserWorks` | `send_game_result_with_phaser_works` | ゲーム結果をPhaserWorksへ送信 | 即時 |
 | `SendGameResultWithPowerAutomate` | `send_game_result_with_power_automate` | ゲーム結果をPower Automateへ送信 | 即時 |
 | `CheckPreferredUsername` | `check_preferred_username` | 起動URLの`preferredUsername`を判定 | 判定OK: 即時 / 判定NG: 停止 |
-| `CheckCondition` | `check_condition` | 変数条件を判定し、結果に応じて遷移先タイムラインを分岐 | 遷移（終端） |
+| `ConditionalAction` | `conditional_action` | 変数条件の判定結果に応じて、アクション（即時系イベント）を実行 | 即時（アクションに遷移を含む場合は遷移） |
 
 ---
 
@@ -534,7 +534,7 @@
 
 ## GetVariable / `get_variable`（変数条件）
 
-**単体のタイムラインイベントとしては使えません。** `Choice` / `MultiChoice` の選択肢の `condition` プロパティや、[CheckCondition](#checkcondition--check_condition変数条件分岐) の `condition` プロパティ内で、変数値による条件（`VariableCondition`）を表すために使います。
+**単体のタイムラインイベントとしては使えません。** `Choice` / `MultiChoice` の選択肢の `condition` プロパティや、[ConditionalAction](#conditionalaction--conditional_action条件付きアクション) の `condition` プロパティ内で、変数値による条件（`VariableCondition`）を表すために使います。
 
 | プロパティ | 型 | 必須 | 説明 |
 | --- | --- | --- | --- |
@@ -687,29 +687,50 @@
 
 - 判定NG時はタイムラインが完全に停止するため、シナリオの先頭付近など、以降のイベント（`SceneTransition`によるタイトル遷移など）を前提にしない位置に配置してください。
 
-## CheckCondition / `check_condition`（変数条件分岐）
+## ConditionalAction / `conditional_action`（条件付きアクション）
 
-`condition`（[GetVariable](#getvariable--get_variable変数条件)と同じ`VariableCondition`）を判定し、結果が `true` なら `trueKey`、`false` なら `falseKey` のタイムラインへ遷移します（内部的には `TimelineTransition` と同じシーンリスタート）。このイベント以降のイベントは実行されないため、タイムラインの終端として使います。
+`condition`（[GetVariable](#getvariable--get_variable変数条件)と同じ`VariableCondition`）を判定し、結果が `true` なら `trueAction`、`false` なら `falseAction` に指定したアクションを先頭から順に実行します。アクションは「待機を伴わない即時系イベント」で、変数操作・サウンド・背景/前景の操作・タイムライン/シーン遷移などを指定できます。
 
 | プロパティ | 型 | 必須 | 説明 |
 | --- | --- | --- | --- |
 | `condition` | VariableCondition | ○ | 判定する変数条件 |
-| `trueKey` | string | ○ | 判定結果が`true`の場合の遷移先タイムラインキー |
-| `falseKey` | string | ○ | 判定結果が`false`の場合の遷移先タイムラインキー |
+| `trueAction` | Action[] | 任意 | 判定結果が`true`の場合に順に実行するアクション（省略時は何もしない） |
+| `falseAction` | Action[] | 任意 | 判定結果が`false`の場合に順に実行するアクション（省略時は何もしない） |
+
+指定できるアクション（`Action`）は次のイベントです。各イベントのプロパティは対応するセクションを参照してください。
+
+- 画面系: `ClearDialog` / `SetBackground` / `ClearBackground` / `SetFrame` / `AddForeground` / `ClearForeground` / `ShowWebLink` / `HideWebLink`
+- サウンド系: `PlaySound` / `ClearSound`
+- 変数系: `SetVariable` / `ClearVariable` / `IncrementVariable` / `DecrementVariable` / `SetVariableList` / `ClearVariableList` / `PushVariableList` / `PopVariableList`
+- 遷移系: `TimelineTransition` / `SceneTransition`
 
 ```ts
+// スコアが3以上ならボーナスステージへ遷移し、そうでなければ通常ステージへ遷移する
 {
-    event: EventTypeEnum.CheckCondition,
+    event: EventTypeEnum.ConditionalAction,
     condition: { event: EventTypeEnum.GetVariable, key: "score", operator: "gte", value: 3 },
-    trueKey: "bonus_stage",
-    falseKey: "normal_stage",
+    trueAction: [{ event: EventTypeEnum.TimelineTransition, key: "bonus_stage" }],
+    falseAction: [{ event: EventTypeEnum.TimelineTransition, key: "normal_stage" }],
+},
+
+// 条件を満たす場合だけ変数を更新して、次のイベントへ進む（falseActionは省略）
+{
+    event: EventTypeEnum.ConditionalAction,
+    condition: { event: EventTypeEnum.GetVariable, key: "visited_shrine", operator: "exists" },
+    trueAction: [
+        { event: EventTypeEnum.IncrementVariable, key: "score", value: 5 },
+        { event: EventTypeEnum.PlaySound, key: "bonus" },
+    ],
 },
 ```
 
 注意点:
 
-- `Choice`/`MultiChoice`の`condition`は「選択肢の表示可否」の判定に使いますが、`CheckCondition`は「プレイヤー操作なしでタイムラインを自動分岐」させる点が異なります
-- シーンのリスタートを伴うため、背景・前景・ダイアログなどの表示状態はシーンの `init`/`create` の実装に従って再構築されます
+- 実行したアクションに遷移系（`TimelineTransition` / `SceneTransition`）が含まれない場合（`trueAction`/`falseAction`の省略時を含む）は、アクション実行後に次のイベントへ進みます
+- 遷移系アクションを実行した時点でシーンが切り替わるため、**それ以降のアクションと、`ConditionalAction`以降のイベントは実行されません**。複数のアクションを指定する場合は、遷移系を末尾に置いてください
+- `Choice`/`MultiChoice`の`condition`は「選択肢の表示可否」の判定に使いますが、`ConditionalAction`は「プレイヤー操作なしでタイムラインを自動分岐」させる点が異なります
+- `SetDialog` / `Choice` / `ClickWait` などの待機を伴うイベントはアクションに指定できません（型エラーになります）。会話や選択肢で分岐したい場合は、`TimelineTransition` で別タイムラインへ遷移し、遷移先に記述してください
+- 遷移系アクションはシーンのリスタートを伴うため、背景・前景・ダイアログなどの表示状態はシーンの `init`/`create` の実装に従って再構築されます
 
 ---
 
